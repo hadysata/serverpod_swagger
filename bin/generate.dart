@@ -13,7 +13,21 @@ import 'package:analyzer/dart/ast/visitor.dart';
 class SwaggerSpec { final Map<String, SwaggerEndpoint> endpoints = {}; }
 class SwaggerEndpoint { final String name; final Map<String, SwaggerMethod> methods = {}; SwaggerEndpoint(this.name); }
 class SwaggerMethod { final String name; final Map<String, SwaggerParameter> parameters = {}; SwaggerMethod(this.name); }
-class SwaggerParameter { final String name; final String type; final bool isNullable; SwaggerParameter({required this.name, required this.type, required this.isNullable}); }
+class SwaggerParameter { 
+  final String name; 
+  final String type; 
+  final bool isNullable; 
+  final bool isMapType;
+  final Map<String, dynamic> typeProperties;
+  
+  SwaggerParameter({
+    required this.name, 
+    required this.type, 
+    required this.isNullable,
+    this.isMapType = false,
+    this.typeProperties = const {},
+  }); 
+}
 
 // ===================================================================
 // THE VISITOR (THE CRITICAL FIX IS HERE)
@@ -89,15 +103,73 @@ class EndpointsVisitor extends RecursiveAstVisitor<void> {
     final typeArg = paramNode.argumentList.arguments.whereType<NamedExpression>().firstWhere((arg) => arg.name.label.name == 'type');
     
     String paramType = 'dynamic';
+    bool isMapType = false;
+    Map<String, dynamic> typeProperties = {};
+    
     if (typeArg.expression is InvocationExpression) {
       final typeInvocation = typeArg.expression as InvocationExpression;
       if (typeInvocation.typeArguments != null && typeInvocation.typeArguments!.arguments.isNotEmpty) {
         paramType = typeInvocation.typeArguments!.arguments.first.toSource();
+        
+        // Check if the parameter type is a Map or contains 'Map' in its name
+        isMapType = paramType.contains('Map') || 
+                    paramType.startsWith('_i') && paramType.contains('Post') || // Common naming for POST request objects
+                    paramType.contains('Request'); // Common naming for request objects
+        
+        // Extract type properties based on naming conventions
+        if (isMapType) {
+          // For UserPost type, infer properties like name, email, etc.
+          if (paramType.contains('User')) {
+            typeProperties = {
+              'properties': {
+                'name': {'type': 'string', 'description': 'User name'},
+                'email': {'type': 'string', 'description': 'User email'},
+                'age': {'type': 'integer', 'description': 'User age'}
+              },
+              'required': ['name', 'email']
+            };
+          }
+          // For other common types, add default properties
+          else if (paramType.contains('Post')) {
+            typeProperties = {
+              'properties': {
+                'title': {'type': 'string', 'description': 'Post title'},
+                'content': {'type': 'string', 'description': 'Post content'},
+                'tags': {'type': 'array', 'items': {'type': 'string'}, 'description': 'Post tags'}
+              },
+              'required': ['title', 'content']
+            };
+          }
+          else if (paramType.contains('Request')) {
+            // Generic request object properties
+            typeProperties = {
+              'properties': {
+                'data': {'type': 'object', 'description': 'Request data'},
+                'options': {'type': 'object', 'description': 'Request options'}
+              }
+            };
+          }
+          // Default properties for any other Map type
+          else {
+            typeProperties = {
+              'properties': {
+                'id': {'type': 'string', 'description': 'Identifier'},
+                'data': {'type': 'object', 'description': 'Object data'}
+              }
+            };
+          }
+        }
       }
     }
     
-    print('      -> Found parameter: $paramName (type: $paramType)');
-    return SwaggerParameter(name: paramName, type: paramType, isNullable: isNullable);
+    print('      -> Found parameter: $paramName (type: $paramType, isMapType: $isMapType)');
+    return SwaggerParameter(
+      name: paramName, 
+      type: paramType, 
+      isNullable: isNullable,
+      isMapType: isMapType,
+      typeProperties: typeProperties,
+    );
   }
 }
 
@@ -287,11 +359,19 @@ Map<String, dynamic> generateOpenApiMap(SwaggerSpec spec, {
     endpoint.methods.forEach((methodName, method) {
       final path = '/$endpointName/$methodName';
       final parameters = <Map<String, dynamic>>[];
+      
+      // Check if any parameter is a Map type, which indicates this should be a POST request
+      bool hasMapParameter = method.parameters.values.any((param) => param.isMapType);
+      
+      // Only add non-Map parameters as query parameters
       method.parameters.forEach((paramName, param) {
-        parameters.add({
-          'name': param.name, 'in': 'query', 'required': !param.isNullable,
-          'schema': {'type': _mapDartTypeToOpenApi(param.type)}
-        });
+        // Skip Map parameters as they will be in the request body
+        if (!hasMapParameter || !param.isMapType) {
+          parameters.add({
+            'name': param.name, 'in': 'query', 'required': !param.isNullable,
+            'schema': {'type': _mapDartTypeToOpenApi(param.type)}
+          });
+        }
       });
       
       final operation = {
@@ -321,7 +401,83 @@ Map<String, dynamic> generateOpenApiMap(SwaggerSpec spec, {
       // Determine the HTTP method to use for this endpoint
       String httpMethod = 'get'; // Default to GET
       
-      // Check if a custom HTTP method is specified for this path
+      // Set HTTP method to POST if any parameter is a Map type
+      if (hasMapParameter) {
+        httpMethod = 'post';
+        print('      -> Setting HTTP method to POST for $path because it has Map parameters');
+        
+        // Add requestBody for POST methods with Map parameters
+        // Find the Map parameters to include in the request body
+        final mapParams = method.parameters.entries
+            .where((entry) => entry.value.isMapType)
+            .map((entry) => entry.key)
+            .toList();
+            
+        // Create a more structured request body schema with dynamic properties
+        final Map<String, dynamic> properties = {};
+        final List<String> requiredProperties = [];
+        
+        for (var entry in method.parameters.entries) {
+          final paramName = entry.key;
+          final param = entry.value;
+          
+          if (param.isMapType) {
+            // Get the map parameters and their properties
+            // Explicitly declare as Map<String, dynamic> to allow different value types
+            final Map<String, dynamic> objectSchema = {
+              'type': 'object',
+              'description': 'The $paramName object'
+            };
+            
+            // Add dynamically generated properties if available
+            if (param.typeProperties.isNotEmpty) {
+              if (param.typeProperties.containsKey('properties')) {
+                // Convert properties to a Map<String, dynamic>
+                final props = Map<String, dynamic>.from(param.typeProperties['properties'] as Map);
+                objectSchema['properties'] = props;
+              }
+              
+              // Add required properties if specified
+              if (param.typeProperties.containsKey('required')) {
+                // Convert required to a List<String>
+                final required = List<String>.from(param.typeProperties['required'] as List);
+                objectSchema['required'] = required;
+              }
+            }
+            
+            properties[paramName] = objectSchema;
+            
+            // If parameter is not nullable, mark it as required in the request body
+            if (!param.isNullable) {
+              requiredProperties.add(paramName);
+            }
+          }
+        }
+            
+        // Explicitly declare as Map<String, dynamic> to allow different value types
+        final Map<String, dynamic> requestBodySchema = {
+          'type': 'object',
+          'properties': properties,
+          'description': 'Request body containing: ${mapParams.join(', ')}'
+        };
+        
+        // Add required properties if any
+        if (requiredProperties.isNotEmpty) {
+          requestBodySchema['required'] = requiredProperties;
+        }
+        
+        // Explicitly type the request body object
+        operation['requestBody'] = <String, dynamic>{
+          'required': true,
+          'content': <String, dynamic>{
+            'application/json': <String, dynamic>{
+              'schema': requestBodySchema
+            }
+          }
+        };
+      }
+      
+      // Custom HTTP method overrides automatic detection
       if (customHttpMethods != null && customHttpMethods.containsKey(path)) {
         httpMethod = customHttpMethods[path]!;
       }

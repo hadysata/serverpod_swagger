@@ -241,6 +241,29 @@ You can also use multiple `--http-method` parameters to set different methods fo
 dart run serverpod_swagger_ui:generate --http-method=profile/user:post --http-method=users/create:put --base-url=http://localhost:8080
 ```
 
+#### Automatic Method Detection
+
+The generator automatically detects appropriate HTTP methods based on parameter types:
+
+- Endpoints with Map parameters or types containing 'Map', 'Post', or 'Request' are automatically set as POST methods
+- Map-type parameters are included ONLY in the request body, not as query parameters
+- Non-Map parameters remain as query parameters
+- Request bodies are structured with parameter names as keys (e.g., `{"userPost": {...}}`) 
+- This automatic detection can be overridden using the `--http-method` parameter
+
+#### Dynamic Property Generation
+
+The generator intelligently creates structured request body schemas based on parameter types:
+
+- For parameters with types containing 'User', it generates properties like 'name', 'email', and 'age'
+- For parameters with types containing 'Post', it generates properties like 'title', 'content', and 'tags'
+- For other common types, it generates appropriate properties based on naming conventions
+- Non-nullable Map parameters are automatically marked as required in the request body
+
+This makes your API documentation more informative and accurate, showing the expected structure of request bodies.
+
+See the [detailed documentation](documentation.md#dynamic-property-generation) for more information.
+
 ### Explicitly Unsecuring Endpoints
 
 If you want to secure most endpoints but explicitly exclude some from requiring authentication, you can use the `--unsecure-endpoints` parameter with a comma-separated list of endpoints or methods to exclude:

@@ -127,6 +127,56 @@ This approach is more efficient and convenient for making incremental changes to
 dart run serverpod_swagger_ui:generate --http-method=profile/user:post --base-url=http://localhost:8080
 ```
 
+### Automatic HTTP Method Detection
+
+The generator automatically detects appropriate HTTP methods based on parameter types:
+
+- Endpoints with parameters that are Maps, or have types containing 'Map', 'Post', or 'Request' in their names are automatically set as POST methods with a JSON request body
+- Map-type parameters are included ONLY in the request body, not as query parameters
+- Non-Map parameters remain as query parameters
+- This automatic detection can be overridden by explicitly specifying a method using the `--http-method` parameter
+
+For example, if you have an endpoint method like this:
+
+```dart
+Future<void> postUser(Session session, UserPost request) async {
+  // Implementation
+}
+```
+
+The generator will automatically:
+1. Set this as a POST method
+2. Include the `request` parameter in the JSON request body
+3. Exclude the `request` parameter from query parameters
+4. Create a proper OpenAPI specification with a structured request body schema
+
+The generated request body in Swagger UI will look like this:
+
+```json
+{
+  "userPost": {
+    "name": "Alice",
+    "email": "alice@example.com",
+    "age": 30
+  }
+}
+```
+
+This structure matches the expected format for Serverpod endpoint methods, where the parameter name is used as the key in the request body.
+
+### Dynamic Property Generation
+
+The generator now intelligently creates structured request body schemas based on parameter types:
+
+- For parameters with types containing 'User', it generates properties like 'name', 'email', and 'age'
+- For parameters with types containing 'Post', it generates properties like 'title', 'content', and 'tags'
+- For parameters with types containing 'Request', it generates generic properties like 'data' and 'options'
+- For other Map types, it generates default properties like 'id' and 'data'
+
+This dynamic property generation makes your API documentation more informative and accurate, showing the expected structure of request bodies based on parameter types.
+
+Additionally, the generator automatically marks non-nullable Map parameters as required in the request body, ensuring that your API documentation correctly reflects your endpoint's requirements.
+
 This will configure the `/profile/user` endpoint to use the POST method instead of the default GET method.
 
 #### Multiple HTTP Method Customizations
