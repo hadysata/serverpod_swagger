@@ -105,11 +105,48 @@ class EndpointsVisitor extends RecursiveAstVisitor<void> {
 // MAIN FUNCTION (UPDATED TO HANDLE ARGUMENTS)
 // ===================================================================
 void main(List<String> args) {
-  // --- ADD THIS BLOCK TO PARSE ARGUMENTS ---
+  // --- PARSE ARGUMENTS ---
   String? baseUrl;
+  String? authType;
+  String? authDescription;
+  List<String>? securedEndpoints;
+  List<String>? unsecuredEndpoints;
+  String? secureSingleUrl;
+  bool disableAuthGlobally = false;
+  bool verbose = false; // Flag to indicate verbose output
+  Map<String, String> customHttpMethods = {}; // Map to store custom HTTP methods for specific endpoints
+  
   for (var arg in args) {
     if (arg.startsWith('--base-url=')) {
       baseUrl = arg.substring('--base-url='.length);
+    } else if (arg.startsWith('--auth=')) {
+      authType = arg.substring('--auth='.length);
+    } else if (arg.startsWith('--auth-description=')) {
+      authDescription = arg.substring('--auth-description='.length);
+    } else if (arg.startsWith('--secure-endpoints=')) {
+      final endpointsList = arg.substring('--secure-endpoints='.length);
+      securedEndpoints = endpointsList.split(',');
+    } else if (arg.startsWith('--unsecure-endpoints=')) {
+      final endpointsList = arg.substring('--unsecure-endpoints='.length);
+      unsecuredEndpoints = endpointsList.split(',');
+    } else if (arg.startsWith('--secure-single-url=')) {
+      secureSingleUrl = arg.substring('--secure-single-url='.length);
+    } else if (arg.startsWith('--http-method=')) {
+      // Format: --http-method=endpoint/method:POST or --http-method=/endpoint/method:PUT
+      final methodSpec = arg.substring('--http-method='.length);
+      final parts = methodSpec.split(':');
+      if (parts.length == 2) {
+        final path = parts[0].startsWith('/') ? parts[0] : '/${parts[0]}';
+        final method = parts[1].toLowerCase();
+        customHttpMethods[path] = method;
+        print('Setting HTTP method for $path to ${method.toUpperCase()}');
+      } else {
+        print('Warning: Invalid --http-method format. Use endpoint/method:POST or /endpoint/method:PUT');
+      }
+    } else if (arg == '--unauth' || arg == '--disable-auth') {
+      disableAuthGlobally = true;
+    } else if (arg == '--verbose') {
+      verbose = true;
     }
   }
 
@@ -118,7 +155,24 @@ void main(List<String> args) {
   } else {
     print('Warning: No --base-url provided. "Try it out" may use the wrong host.');
   }
-  // --- END OF ADDED BLOCK ---
+  
+  // Handle authentication configuration
+  if (disableAuthGlobally) {
+    print('Authentication globally disabled with --unauth flag');
+    // Keep authType for schema definition but don't apply it to endpoints
+  } else if (authType != null) {
+    print('Adding authentication type: $authType');
+    if (secureSingleUrl != null) {
+      print('Securing single URL endpoint: $secureSingleUrl');
+    } else if (securedEndpoints != null && securedEndpoints.isNotEmpty) {
+      print('Securing specific endpoints: ${securedEndpoints.join(', ')}');
+    } else if (unsecuredEndpoints != null && unsecuredEndpoints.isNotEmpty) {
+      print('Explicitly unsecuring endpoints: ${unsecuredEndpoints.join(', ')}');
+    } else {
+      print('Securing all endpoints');
+    }
+  }
+  // --- END OF ARGUMENT PARSING ---
 
 
   final projectRoot = Directory.current;
@@ -144,20 +198,48 @@ void main(List<String> args) {
     print('Success! Found ${visitor.spec.endpoints.length} endpoint(s).');
   }
 
-  // --- PASS THE BASE URL TO THE HELPER FUNCTION ---
-  final openApiJson = generateOpenApiMap(visitor.spec, baseUrl: baseUrl);
+  // --- PASS THE ARGUMENTS TO THE HELPER FUNCTION ---
+  final openApiJson = generateOpenApiMap(
+    visitor.spec, 
+    baseUrl: baseUrl,
+    authType: authType,
+    authDescription: authDescription,
+    securedEndpoints: securedEndpoints,
+    unsecuredEndpoints: unsecuredEndpoints,
+    secureSingleUrl: secureSingleUrl,
+    disableAuthGlobally: disableAuthGlobally,
+    customHttpMethods: customHttpMethods,
+  );
 
   final outputFile = File(p.join(projectRoot.path, 'apispec.json'));
   final prettyJson = JsonEncoder.withIndent('  ').convert(openApiJson);
   outputFile.writeAsStringSync(prettyJson);
 
+  if (verbose) {
+    print('📝 Updating OpenAPI specification file: ${outputFile.path}');
+    print('📊 Specification contains ${openApiJson['paths'].length} endpoints');
+    if (openApiJson.containsKey('components') && 
+        openApiJson['components'].containsKey('securitySchemes')) {
+      print('🔒 Security schemes defined: ${openApiJson['components']['securitySchemes'].keys.join(', ')}');
+    }
+  }
+
   print('✅ Successfully generated apispec.json!');
 }
 
 // ===================================================================
-// HELPER FUNCTIONS (UPDATED TO HANDLE BASE URL)
+// HELPER FUNCTIONS (UPDATED TO HANDLE BASE URL AND AUTHENTICATION)
 // ===================================================================
-Map<String, dynamic> generateOpenApiMap(SwaggerSpec spec, {String? baseUrl}) {
+Map<String, dynamic> generateOpenApiMap(SwaggerSpec spec, {
+  String? baseUrl,
+  String? authType,
+  String? authDescription,
+  List<String>? securedEndpoints,
+  List<String>? unsecuredEndpoints,
+  String? secureSingleUrl,
+  bool disableAuthGlobally = false,
+  Map<String, String>? customHttpMethods,
+}) {
   final paths = <String, dynamic>{};
   spec.endpoints.forEach((endpointName, endpoint) {
     endpoint.methods.forEach((methodName, method) {
@@ -169,11 +251,41 @@ Map<String, dynamic> generateOpenApiMap(SwaggerSpec spec, {String? baseUrl}) {
           'schema': {'type': _mapDartTypeToOpenApi(param.type)}
         });
       });
+      
+      final operation = {
+        'summary': 'Call the $methodName method.',
+        'tags': [endpointName],
+        'parameters': parameters,
+        'responses': {'200': {'description': 'Success'}}
+      };
+      
+      // Add security requirement if authentication is enabled, not globally disabled, and this endpoint should be secured
+      bool shouldSecure = false;
+      
+      // If secureSingleUrl is specified, only secure that specific URL
+      if (secureSingleUrl != null) {
+        shouldSecure = (secureSingleUrl == path);
+      } else {
+        // Otherwise use the normal endpoint security logic
+        shouldSecure = _shouldRequireAuth(endpointName, methodName, securedEndpoints, unsecuredEndpoints);
+      }
+      
+      if (authType != null && !disableAuthGlobally && shouldSecure) {
+        operation['security'] = [{
+          authType: [],
+        }];
+      }
+      
+      // Determine the HTTP method to use for this endpoint
+      String httpMethod = 'get'; // Default to GET
+      
+      // Check if a custom HTTP method is specified for this path
+      if (customHttpMethods != null && customHttpMethods.containsKey(path)) {
+        httpMethod = customHttpMethods[path]!;
+      }
+      
       paths[path] = {
-        'get': {
-          'summary': 'Call the $methodName method.', 'tags': [endpointName],
-          'parameters': parameters, 'responses': {'200': {'description': 'Success'}}
-        }
+        httpMethod: operation
       };
     });
   });
@@ -184,7 +296,7 @@ Map<String, dynamic> generateOpenApiMap(SwaggerSpec spec, {String? baseUrl}) {
     'paths': paths
   };
 
-  // --- ADD THIS BLOCK TO INCLUDE THE SERVERS SECTION ---
+  // Add servers section if base URL is provided
   if (baseUrl != null && baseUrl.isNotEmpty) {
     openApiMap['servers'] = [
       {
@@ -193,7 +305,65 @@ Map<String, dynamic> generateOpenApiMap(SwaggerSpec spec, {String? baseUrl}) {
       }
     ];
   }
-  // --- END OF ADDED BLOCK ---
+  
+  // Add security schemes if authentication is enabled
+  if (authType != null) {
+    final securitySchemes = <String, dynamic>{};
+    
+    switch (authType.toLowerCase()) {
+      case 'jwt':
+      case 'bearer':
+        securitySchemes[authType] = {
+          'type': 'http',
+          'scheme': 'bearer',
+          'bearerFormat': 'JWT',
+          'description': authDescription ?? 'JWT authentication token',
+        };
+        break;
+      case 'apikey':
+        securitySchemes[authType] = {
+          'type': 'apiKey',
+          'in': 'header',
+          'name': 'X-API-Key',
+          'description': authDescription ?? 'API key authentication',
+        };
+        break;
+      case 'basic':
+        securitySchemes[authType] = {
+          'type': 'http',
+          'scheme': 'basic',
+          'description': authDescription ?? 'Basic authentication',
+        };
+        break;
+      case 'oauth2':
+        securitySchemes[authType] = {
+          'type': 'oauth2',
+          'flows': {
+            'implicit': {
+              'authorizationUrl': '$baseUrl/oauth/authorize',
+              'scopes': {
+                'read': 'Read access',
+                'write': 'Write access',
+              },
+            },
+          },
+          'description': authDescription ?? 'OAuth2 authentication',
+        };
+        break;
+      default:
+        print('Warning: Unknown auth type "$authType". Using as custom security scheme name.');
+        securitySchemes[authType] = {
+          'type': 'apiKey',
+          'in': 'header',
+          'name': 'Authorization',
+          'description': authDescription ?? 'Custom authentication',
+        };
+    }
+    
+    openApiMap['components'] = {
+      'securitySchemes': securitySchemes,
+    };
+  }
 
   return openApiMap;
 }
@@ -205,4 +375,39 @@ String _mapDartTypeToOpenApi(String dartType) {
     case 'bool': return 'boolean';
     default: return 'object';
   }
+}
+
+// Helper function to determine if an endpoint should require authentication
+bool _shouldRequireAuth(String endpointName, String methodName, List<String>? securedEndpoints, List<String>? unsecuredEndpoints) {
+  // First check if this endpoint is explicitly unsecured
+  if (unsecuredEndpoints != null && unsecuredEndpoints.isNotEmpty) {
+    // Check if this specific endpoint+method is in the unsecured list
+    if (unsecuredEndpoints.contains('$endpointName/$methodName')) {
+      return false;
+    }
+    
+    // Check if the entire endpoint is in the unsecured list
+    if (unsecuredEndpoints.contains(endpointName)) {
+      return false;
+    }
+  }
+  
+  // If no secured endpoints are specified, secure all endpoints by default
+  if (securedEndpoints == null || securedEndpoints.isEmpty) {
+    return true;
+  }
+  
+  // Check if this specific endpoint+method is in the secured list
+  if (securedEndpoints.contains('$endpointName/$methodName')) {
+    return true;
+  }
+  
+  // Check if the entire endpoint is in the secured list
+  if (securedEndpoints.contains(endpointName)) {
+    return true;
+  }
+  
+  // If secured endpoints are specified but this endpoint is not in the list,
+  // then it should not require authentication
+  return false;
 }

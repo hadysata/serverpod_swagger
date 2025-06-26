@@ -32,6 +32,36 @@ dart pub get
 
 ## Usage
 
+### Direct Package Execution
+
+The recommended way to generate an OpenAPI specification for your Serverpod project is to run the following command from your server project root directory:
+
+```bash
+dart run serverpod_swagger_ui:generate --base-url=http://localhost:8080
+```
+
+This will create an `apispec.json` file in your project root directory. The `--base-url` parameter specifies the base URL for your API endpoints.
+
+If you want to see detailed information about the specification generation process, you can use the `--verbose` flag:
+
+```bash
+dart run serverpod_swagger_ui:generate --base-url=http://localhost:8080 --verbose
+```
+
+The `--verbose` flag will display additional information such as the path to the generated file, the number of endpoints included, and security schemes defined.
+
+### Alternative: Using the Script
+
+Alternatively, you can run the script directly from the package:
+
+```bash
+dart bin/generate.dart
+```
+
+This will also create an `apispec.json` file in your project root directory.
+
+### Adding Swagger UI to Your Server
+
 In your Serverpod server's `server.dart` file, add the SwaggerUIRoute to your server's routes:
 
 ```dart
@@ -127,6 +157,230 @@ The simplest way to customize your API documentation is by using the `--base-url
 ```bash
 dart bin/generate.dart --base-url=https://api.example.com
 ```
+
+### Authentication Support
+
+You can add authentication support to your API specification by using the `--auth` parameter when running the `generate.dart` script. The following authentication types are supported:
+
+- `jwt` - JWT/Bearer authentication
+- `apikey` - API Key authentication
+- `basic` - Basic authentication
+- `oauth2` - OAuth2 authentication
+
+Example:
+```bash
+dart bin/generate.dart --auth=jwt --base-url=https://api.example.com
+```
+
+You can also provide a custom description for the authentication scheme using the `--auth-description` parameter:
+
+```bash
+dart bin/generate.dart --auth=jwt --auth-description="JWT token obtained from /auth endpoint" --base-url=https://api.example.com
+```
+
+### Securing Specific Endpoints
+
+By default, when you enable authentication with `--auth`, all endpoints will require authentication. If you want to secure only specific endpoints, you can use the `--secure-endpoints` parameter with a comma-separated list of endpoints or methods to secure:
+
+```bash
+dart bin/generate.dart --auth=jwt --secure-endpoints=users,posts/create,comments/delete
+```
+
+This will only apply authentication requirements to the specified endpoints or methods, while leaving others unsecured.
+
+### Securing a Single URL Endpoint
+
+If you need to secure a specific URL endpoint (like an endpoint with authorization token in header), you can use the `--secure-single-url` parameter:
+
+```bash
+dart run serverpod_swagger_ui:generate --auth=jwt --secure-single-url=/jwtAuth/getCurrentUser --base-url=http://localhost:8080
+```
+
+This will only apply authentication requirements to the exact URL path specified, which is useful for endpoints that require authorization tokens in headers.
+
+### Customizing HTTP Methods
+
+By default, all endpoints are generated with the HTTP GET method. If you need to specify a different HTTP method for a particular endpoint, you can use the `--http-method` parameter:
+
+```bash
+dart run serverpod_swagger_ui:generate --http-method=profile/user:post --base-url=http://localhost:8080
+```
+
+This will set the HTTP method for the `/profile/user` endpoint to POST instead of the default GET. You can specify any valid HTTP method (get, post, put, delete, patch, etc.).
+
+You can also use multiple `--http-method` parameters to set different methods for different endpoints:
+
+```bash
+dart run serverpod_swagger_ui:generate --http-method=profile/user:post --http-method=users/create:put --base-url=http://localhost:8080
+```
+
+### Explicitly Unsecuring Endpoints
+
+If you want to secure most endpoints but explicitly exclude some from requiring authentication, you can use the `--unsecure-endpoints` parameter with a comma-separated list of endpoints or methods to exclude:
+
+```bash
+dart bin/generate.dart --auth=jwt --unsecure-endpoints=health,status,public/posts
+```
+
+This is useful when you want to secure most of your API but have a few public endpoints.
+
+Note: If both `--secure-endpoints` and `--unsecure-endpoints` are provided, `--unsecure-endpoints` takes precedence. This means that if an endpoint is listed in both parameters, it will be unsecured.
+
+### Globally Disabling Authentication
+
+If you need to temporarily disable authentication for all endpoints while preserving your authentication configuration, you can use the `--unauth` or `--disable-auth` flag:
+
+```bash
+dart bin/generate.dart --auth=jwt --unauth
+```
+
+This will include the authentication scheme definition in the OpenAPI specification but won't apply security requirements to any endpoints. This is useful for testing or development environments where you want to disable authentication without removing the configuration.
+
+## Using Authentication in Your Serverpod Project
+
+To use the authentication features in your Serverpod project, follow these steps:
+
+### 1. Generate the OpenAPI Specification with Authentication
+
+First, generate your OpenAPI specification with the desired authentication configuration. You can do this in two ways:
+
+#### Option A: Using the package directly from your server project
+
+```bash
+# From your server project root directory
+dart run serverpod_swagger_ui:generate --auth=jwt --base-url=https://api.example.com
+```
+
+#### Option B: Using the script from the package
+
+```bash
+# From your project root directory
+dart bin/generate.dart --auth=jwt --base-url=https://api.example.com
+```
+
+Both methods will create an `apispec.json` file in your project root directory with JWT authentication enabled for all endpoints.
+
+### 2. Add the SwaggerUIRoute to Your Serverpod Server
+
+In your server's main file (typically `bin/server.dart`), add the SwaggerUIRoute to your Serverpod server:
+
+```dart
+import 'dart:io';
+import 'package:serverpod/serverpod.dart';
+import 'package:serverpod_swagger_ui/serverpod_swagger_ui.dart';
+
+// Your existing server setup code...
+
+void main(List<String> args) async {
+  // Create your Serverpod server
+  final pod = Serverpod(
+    args,
+    Protocol(),
+    Endpoints(),
+    // Your server configuration...
+  );
+  
+  // Get the project root directory
+  final projectRoot = Directory(Directory.current.path);
+  
+  // Create a SwaggerUIRoute
+  final swaggerRoute = SwaggerUIRoute(projectRoot);
+  
+  // Add the route to your web server
+  pod.webServer.addRoute(swaggerRoute, '/swagger/');
+  
+  // Start the server
+  await pod.start();
+}
+```
+
+### 3. Access the Swagger UI
+
+Once your server is running, you can access the Swagger UI at:
+
+```
+http://your-server-host:web-server-port/swagger/
+```
+
+For example, with default settings:
+
+```
+http://localhost:8082/swagger/
+```
+
+### 4. Authentication Options for Different Environments
+
+You can create different OpenAPI specifications for different environments. Here are examples using the direct package execution method:
+
+#### Development Environment
+
+```bash
+dart run serverpod_swagger_ui:generate --auth=jwt --unauth --base-url=http://localhost:8080
+```
+
+#### Testing Environment with Specific Endpoints Secured
+
+```bash
+dart run serverpod_swagger_ui:generate --auth=jwt --secure-endpoints=users,posts --base-url=https://test-api.example.com
+```
+
+#### Production Environment
+
+```bash
+dart run serverpod_swagger_ui:generate --auth=jwt --unsecure-endpoints=health,status --base-url=https://api.example.com
+```
+
+### 5. Automating Specification Generation
+
+You can add a script to your project to automate the generation of the OpenAPI specification for different environments. For example, create a `scripts/generate_api_docs.dart` file:
+
+```dart
+import 'dart:io';
+
+void main(List<String> args) async {
+  final environment = args.isNotEmpty ? args[0] : 'dev';
+  
+  switch (environment) {
+    case 'prod':
+      await Process.run('dart', [
+        'run',
+        'serverpod_swagger_ui:generate',
+        '--auth=jwt',
+        '--base-url=https://api.example.com',
+      ]);
+      break;
+    case 'test':
+      await Process.run('dart', [
+        'run',
+        'serverpod_swagger_ui:generate',
+        '--auth=jwt',
+        '--secure-endpoints=users,posts',
+        '--base-url=https://test-api.example.com',
+      ]);
+      break;
+    case 'dev':
+    default:
+      await Process.run('dart', [
+        'run',
+        'serverpod_swagger_ui:generate',
+        '--auth=jwt',
+        '--unauth',
+        '--base-url=http://localhost:8080',
+      ]);
+      break;
+  }
+  
+  print('Generated OpenAPI specification for $environment environment');
+}
+```
+
+Then run it with:
+
+```bash
+dart scripts/generate_api_docs.dart prod
+```
+
+This approach allows you to generate the OpenAPI specification directly from your server project without needing to access the package's bin directory.
 
 ### Modifying the OpenAPI Generation
 

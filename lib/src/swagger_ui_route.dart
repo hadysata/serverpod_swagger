@@ -93,6 +93,16 @@ class SwaggerUIRoute extends Route {
         url: "apispec.json", // Relative URL is robust
         dom_id: '#swagger-ui',
         deepLinking: true,
+        // Enable all OAuth-related functionality
+        oauth2RedirectUrl: window.location.origin + window.location.pathname + 'oauth2-redirect.html',
+        // Show auth buttons at the top
+        displayOperationId: true,
+        // Persist auth data in localStorage
+        persistAuthorization: true,
+        // Improve the auth UX
+        withCredentials: true,
+        // Enable the try it out feature by default
+        tryItOutEnabled: true,
       });
       window.ui = ui;
     };
