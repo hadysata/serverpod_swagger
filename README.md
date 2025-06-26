@@ -50,6 +50,33 @@ dart run serverpod_swagger_ui:generate --base-url=http://localhost:8080 --verbos
 
 The `--verbose` flag will display additional information such as the path to the generated file, the number of endpoints included, and security schemes defined.
 
+### Updating Existing Specifications
+
+Instead of regenerating the entire OpenAPI specification from scratch each time, you can use the `--update` flag to modify an existing specification file:
+
+```bash
+dart run serverpod_swagger_ui:generate --update --http-method=greeting/hello:post
+```
+
+This allows you to make incremental changes to your API documentation without having to specify all parameters again.
+
+**Common update scenarios:**
+
+```bash
+# Update HTTP method for an endpoint
+dart run serverpod_swagger_ui:generate --update --http-method=greeting/hello:post
+
+# Update base URL
+dart run serverpod_swagger_ui:generate --update --base-url=https://api.example.com
+
+# Update authentication settings
+dart run serverpod_swagger_ui:generate --update --auth=jwt
+```
+
+The update mode is particularly useful for large projects where regenerating the entire specification would be time-consuming.
+
+See the [detailed documentation](documentation.md#updating-existing-specifications) for more information on when and how to use this feature.
+
 ### Alternative: Using the Script
 
 Alternatively, you can run the script directly from the package:

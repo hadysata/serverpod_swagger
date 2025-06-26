@@ -114,6 +114,7 @@ void main(List<String> args) {
   String? secureSingleUrl;
   bool disableAuthGlobally = false;
   bool verbose = false; // Flag to indicate verbose output
+  bool updateMode = false; // Flag to indicate update mode instead of full regeneration
   Map<String, String> customHttpMethods = {}; // Map to store custom HTTP methods for specific endpoints
   
   for (var arg in args) {
@@ -147,6 +148,8 @@ void main(List<String> args) {
       disableAuthGlobally = true;
     } else if (arg == '--verbose') {
       verbose = true;
+    } else if (arg == '--update') {
+      updateMode = true;
     }
   }
 
@@ -176,42 +179,79 @@ void main(List<String> args) {
 
 
   final projectRoot = Directory.current;
-  final endpointsFile = File(p.join(projectRoot.path, 'lib', 'src', 'generated', 'endpoints.dart'));
+  final outputFile = File(p.join(projectRoot.path, 'apispec.json'));
+  Map<String, dynamic>? openApiJson;
+  
+  // Check if we're in update mode and if the apispec.json file exists
+  if (updateMode && outputFile.existsSync()) {
+    try {
+      // Read the existing apispec.json file
+      final existingJson = jsonDecode(outputFile.readAsStringSync()) as Map<String, dynamic>;
+      print('📝 Update mode: Modifying existing OpenAPI specification');
+      
+      // Apply updates to the existing specification
+      openApiJson = updateOpenApiMap(
+        existingJson,
+        baseUrl: baseUrl,
+        authType: authType,
+        authDescription: authDescription,
+        securedEndpoints: securedEndpoints,
+        unsecuredEndpoints: unsecuredEndpoints,
+        secureSingleUrl: secureSingleUrl,
+        disableAuthGlobally: disableAuthGlobally,
+        customHttpMethods: customHttpMethods,
+      );
+    } catch (e) {
+      print('⚠️ Error reading or updating existing apispec.json: $e');
+      print('Falling back to full regeneration mode');
+      updateMode = false;
+    }
+  }
+  
+  // If not in update mode or update failed, generate from scratch
+  if (!updateMode) {
+    final endpointsFile = File(p.join(projectRoot.path, 'lib', 'src', 'generated', 'endpoints.dart'));
 
-  if (!endpointsFile.existsSync()) {
-    print('Error: "endpoints.dart" not found.');
+    if (!endpointsFile.existsSync()) {
+      print('Error: "endpoints.dart" not found.');
+      exit(1);
+    }
+
+    final content = endpointsFile.readAsStringSync();
+    final parseResult = parseString(content: content, throwIfDiagnostics: false);
+    
+    final visitor = EndpointsVisitor();
+    
+    print('--- STARTING EndpointsVisitor ---');
+    parseResult.unit.accept(visitor);
+    print('--- FINISHED EndpointsVisitor ---');
+
+    if (visitor.spec.endpoints.isEmpty) {
+      print('Warning: The visitor found no endpoints.');
+    } else {
+      print('Success! Found ${visitor.spec.endpoints.length} endpoint(s).');
+    }
+
+    // --- PASS THE ARGUMENTS TO THE HELPER FUNCTION ---
+    openApiJson = generateOpenApiMap(
+      visitor.spec, 
+      baseUrl: baseUrl,
+      authType: authType,
+      authDescription: authDescription,
+      securedEndpoints: securedEndpoints,
+      unsecuredEndpoints: unsecuredEndpoints,
+      secureSingleUrl: secureSingleUrl,
+      disableAuthGlobally: disableAuthGlobally,
+      customHttpMethods: customHttpMethods,
+    );
+  }
+
+  // Ensure openApiJson is not null before using it
+  if (openApiJson == null) {
+    print('Error: Failed to generate or update OpenAPI specification.');
     exit(1);
   }
-
-  final content = endpointsFile.readAsStringSync();
-  final parseResult = parseString(content: content, throwIfDiagnostics: false);
   
-  final visitor = EndpointsVisitor();
-  
-  print('--- STARTING EndpointsVisitor ---');
-  parseResult.unit.accept(visitor);
-  print('--- FINISHED EndpointsVisitor ---');
-
-  if (visitor.spec.endpoints.isEmpty) {
-    print('Warning: The visitor found no endpoints.');
-  } else {
-    print('Success! Found ${visitor.spec.endpoints.length} endpoint(s).');
-  }
-
-  // --- PASS THE ARGUMENTS TO THE HELPER FUNCTION ---
-  final openApiJson = generateOpenApiMap(
-    visitor.spec, 
-    baseUrl: baseUrl,
-    authType: authType,
-    authDescription: authDescription,
-    securedEndpoints: securedEndpoints,
-    unsecuredEndpoints: unsecuredEndpoints,
-    secureSingleUrl: secureSingleUrl,
-    disableAuthGlobally: disableAuthGlobally,
-    customHttpMethods: customHttpMethods,
-  );
-
-  final outputFile = File(p.join(projectRoot.path, 'apispec.json'));
   final prettyJson = JsonEncoder.withIndent('  ').convert(openApiJson);
   outputFile.writeAsStringSync(prettyJson);
 
@@ -224,7 +264,9 @@ void main(List<String> args) {
     }
   }
 
-  print('✅ Successfully generated apispec.json!');
+  print(updateMode 
+    ? '✅ Successfully updated apispec.json!' 
+    : '✅ Successfully generated apispec.json!');
 }
 
 // ===================================================================
@@ -410,4 +452,178 @@ bool _shouldRequireAuth(String endpointName, String methodName, List<String>? se
   // If secured endpoints are specified but this endpoint is not in the list,
   // then it should not require authentication
   return false;
+}
+
+// Function to update an existing OpenAPI specification with new parameters
+Map<String, dynamic> updateOpenApiMap(
+  Map<String, dynamic> existingSpec, {
+  String? baseUrl,
+  String? authType,
+  String? authDescription,
+  List<String>? securedEndpoints,
+  List<String>? unsecuredEndpoints,
+  String? secureSingleUrl,
+  bool disableAuthGlobally = false,
+  Map<String, String>? customHttpMethods,
+}) {
+  // Create a deep copy of the existing spec to avoid modifying the original
+  final updatedSpec = Map<String, dynamic>.from(existingSpec);
+  
+  // Update base URL if provided
+  if (baseUrl != null && baseUrl.isNotEmpty) {
+    updatedSpec['servers'] = [
+      {
+        'url': baseUrl,
+        'description': 'Main API Server',
+      }
+    ];
+  }
+  
+  // Update security schemes if authentication type is provided
+  if (authType != null) {
+    if (!updatedSpec.containsKey('components')) {
+      updatedSpec['components'] = {};
+    }
+    
+    final components = updatedSpec['components'] as Map<String, dynamic>;
+    if (!components.containsKey('securitySchemes')) {
+      components['securitySchemes'] = {};
+    }
+    
+    final securitySchemes = components['securitySchemes'] as Map<String, dynamic>;
+    
+    switch (authType.toLowerCase()) {
+      case 'jwt':
+      case 'bearer':
+        securitySchemes[authType] = {
+          'type': 'http',
+          'scheme': 'bearer',
+          'bearerFormat': 'JWT',
+          'description': authDescription ?? 'JWT authentication token',
+        };
+        break;
+      case 'apikey':
+        securitySchemes[authType] = {
+          'type': 'apiKey',
+          'in': 'header',
+          'name': 'X-API-Key',
+          'description': authDescription ?? 'API key authentication',
+        };
+        break;
+      case 'basic':
+        securitySchemes[authType] = {
+          'type': 'http',
+          'scheme': 'basic',
+          'description': authDescription ?? 'Basic authentication',
+        };
+        break;
+      case 'oauth2':
+        securitySchemes[authType] = {
+          'type': 'oauth2',
+          'flows': {
+            'implicit': {
+              'authorizationUrl': '$baseUrl/oauth/authorize',
+              'scopes': {
+                'read': 'Read access',
+                'write': 'Write access',
+              },
+            },
+          },
+          'description': authDescription ?? 'OAuth2 authentication',
+        };
+        break;
+      default:
+        print('Warning: Unknown auth type "$authType". Using as custom security scheme name.');
+        securitySchemes[authType] = {
+          'type': 'apiKey',
+          'in': 'header',
+          'name': 'Authorization',
+          'description': authDescription ?? 'Custom authentication',
+        };
+    }
+  }
+  
+  // Update HTTP methods for specific endpoints if provided
+  if (customHttpMethods != null && customHttpMethods.isNotEmpty) {
+    final paths = updatedSpec['paths'] as Map<String, dynamic>;
+    
+    for (final entry in customHttpMethods.entries) {
+      final path = entry.key;
+      final newMethod = entry.value;
+      
+      if (paths.containsKey(path)) {
+        final pathItem = paths[path] as Map<String, dynamic>;
+        
+        // Find the current HTTP method (there should be only one)
+        String? currentMethod;
+        Map<String, dynamic>? operation;
+        
+        for (final methodEntry in pathItem.entries) {
+          if (['get', 'post', 'put', 'delete', 'patch', 'options', 'head'].contains(methodEntry.key)) {
+            currentMethod = methodEntry.key;
+            operation = methodEntry.value as Map<String, dynamic>;
+            break;
+          }
+        }
+        
+        // If we found an existing operation, move it to the new method
+        if (currentMethod != null && operation != null && currentMethod != newMethod) {
+          // Remove the old method
+          pathItem.remove(currentMethod);
+          
+          // Add the operation with the new method
+          pathItem[newMethod] = operation;
+          
+          print('Updated HTTP method for $path from ${currentMethod.toUpperCase()} to ${newMethod.toUpperCase()}');
+        }
+      } else {
+        print('Warning: Path $path not found in the OpenAPI specification. Cannot update HTTP method.');
+      }
+    }
+  }
+  
+  // Update security requirements for endpoints
+  if (authType != null && !disableAuthGlobally) {
+    final paths = updatedSpec['paths'] as Map<String, dynamic>;
+    
+    for (final pathEntry in paths.entries) {
+      final path = pathEntry.key;
+      final pathItem = pathEntry.value as Map<String, dynamic>;
+      
+      for (final methodEntry in pathItem.entries) {
+        if (['get', 'post', 'put', 'delete', 'patch', 'options', 'head'].contains(methodEntry.key)) {
+          final operation = methodEntry.value as Map<String, dynamic>;
+          
+          // Determine if this endpoint should be secured
+          bool shouldSecure = false;
+          
+          // If secureSingleUrl is specified, only secure that specific URL
+          if (secureSingleUrl != null) {
+            shouldSecure = (secureSingleUrl == path);
+          } else if (securedEndpoints != null || unsecuredEndpoints != null) {
+            // Extract endpoint name and method name from the path
+            final pathParts = path.split('/');
+            if (pathParts.length >= 3) {
+              final endpointName = pathParts[1];
+              final methodName = pathParts[2];
+              
+              shouldSecure = _shouldRequireAuth(endpointName, methodName, securedEndpoints, unsecuredEndpoints);
+            }
+          }
+          
+          // Update security requirement based on shouldSecure
+          if (shouldSecure) {
+            operation['security'] = [{
+              authType: [],
+            }];
+          } else {
+            // Remove security requirement if it exists
+            operation.remove('security');
+          }
+        }
+      }
+    }
+  }
+  
+  return updatedSpec;
 }

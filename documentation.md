@@ -71,6 +71,56 @@ This will display additional information such as:
 - The number of endpoints included in the specification
 - Security schemes defined in the specification
 
+### Updating Existing Specifications
+
+Instead of regenerating the entire OpenAPI specification from scratch each time you want to make a change, you can use the `--update` flag to modify an existing specification file:
+
+```bash
+dart run serverpod_swagger_ui:generate --update --http-method=greeting/hello:post
+```
+
+This command will:
+1. Read the existing `apispec.json` file
+2. Apply the specified changes (in this case, changing the HTTP method for the `greeting/hello` endpoint to POST)
+3. Save the updated specification back to the file
+
+#### Benefits of Using the Update Mode
+
+- **Efficiency**: No need to reprocess all endpoints when making small changes
+- **Convenience**: You don't need to remember and specify all original parameters
+- **Consistency**: Maintains other aspects of your API specification while updating specific parts
+- **Time-saving**: Particularly useful in large projects with many endpoints
+
+#### When to Use Update Mode
+
+- When modifying HTTP methods for specific endpoints
+- When changing authentication requirements
+- When updating the base URL
+- When making any incremental changes to an existing specification
+
+#### When to Avoid Update Mode
+
+- When your endpoints.dart file has changed significantly
+- When you want to regenerate the entire specification from scratch
+- When the apispec.json file doesn't exist yet
+
+#### Combining with Other Parameters
+
+The `--update` flag can be combined with any other parameter to modify specific aspects of your API documentation:
+
+```bash
+# Update HTTP method and secure a specific endpoint
+dart run serverpod_swagger_ui:generate --update --http-method=users/profile:put --secure-single-url=/users/profile
+
+# Update base URL only
+dart run serverpod_swagger_ui:generate --update --base-url=https://api.example.com
+
+# Update authentication type
+dart run serverpod_swagger_ui:generate --update --auth=apikey
+```
+
+This approach is more efficient and convenient for making incremental changes to your API documentation.
+
 #### Example: Setting a POST Method for a Profile Endpoint
 
 ```bash
