@@ -52,7 +52,8 @@ Future<void> main(List<String> args) async {
         final method = parts[1].toLowerCase();
         customHttpMethods[path] = method;
       } else {
-        print('[Warning] Invalid --http-method format. Use /endpoint/method:POST. Skipping: "$arg"');
+        print(
+            '[Warning] Invalid --http-method format. Use /endpoint/method:POST. Skipping: "$arg"');
       }
     } else if (arg == '--unauth' || arg == '--disable-auth') {
       disableAuthGlobally = true;
@@ -74,7 +75,8 @@ Future<void> main(List<String> args) async {
       openApiJson =
           jsonDecode(outputFile.readAsStringSync()) as Map<String, dynamic>;
     } catch (e) {
-      print('⚠️ Error reading existing apispec.json: $e. Falling back to full regeneration.');
+      print(
+          '⚠️ Error reading existing apispec.json: $e. Falling back to full regeneration.');
       updateMode = false;
     }
   }
@@ -94,18 +96,17 @@ Future<void> main(List<String> args) async {
   // --- Step 2: APPLY CLI ARGUMENTS TO THE SPEC ---
   print('\n🔧 Applying command-line arguments to the specification...');
   final modifiedApiJson = applyCliArguments(
-    spec: openApiJson,
-    baseUrl: baseUrl,
-    authType: authType,
-    authDescription: authDescription,
-    securedEndpoints: securedEndpoints,
-    unsecuredEndpoints: unsecuredEndpoints,
-    secureSingleUrl: secureSingleUrl,
-    unsecureSingleUrl: unsecureSingleUrl,
-    disableAuthGlobally: disableAuthGlobally,
-    customHttpMethods: customHttpMethods,
-    updateMode: updateMode
-  );
+      spec: openApiJson,
+      baseUrl: baseUrl,
+      authType: authType,
+      authDescription: authDescription,
+      securedEndpoints: securedEndpoints,
+      unsecuredEndpoints: unsecuredEndpoints,
+      secureSingleUrl: secureSingleUrl,
+      unsecureSingleUrl: unsecureSingleUrl,
+      disableAuthGlobally: disableAuthGlobally,
+      customHttpMethods: customHttpMethods,
+      updateMode: updateMode);
 
   // --- Step 3: WRITE THE FINAL RESULT ---
   final prettyJson = JsonEncoder.withIndent('  ').convert(modifiedApiJson);
@@ -114,11 +115,9 @@ Future<void> main(List<String> args) async {
   if (verbose) {
     print('\n--- Verbose Output ---');
     print('Final OpenAPI specification file: ${outputFile.path}');
-    print(
-        'Specification contains ${modifiedApiJson['paths'].length} paths.');
+    print('Specification contains ${modifiedApiJson['paths'].length} paths.');
     if (modifiedApiJson.containsKey('components') &&
-        (modifiedApiJson['components'] as Map)
-            .containsKey('securitySchemes')) {
+        (modifiedApiJson['components'] as Map).containsKey('securitySchemes')) {
       final schemes = modifiedApiJson['components']['securitySchemes'] as Map;
       print('Security schemes defined: ${schemes.keys.join(', ')}');
     }
@@ -194,8 +193,12 @@ Map<String, dynamic> applyCliArguments({
 
   // --- RESTRUCTURED LOGIC: Handle each action type independently ---
 
-  final normalizedSecuredEndpoints = securedEndpoints?.map((e) => e.startsWith('/') ? e.substring(1) : e).toList();
-  final normalizedUnsecuredEndpoints = unsecuredEndpoints?.map((e) => e.startsWith('/') ? e.substring(1) : e).toList();
+  final normalizedSecuredEndpoints = securedEndpoints
+      ?.map((e) => e.startsWith('/') ? e.substring(1) : e)
+      .toList();
+  final normalizedUnsecuredEndpoints = unsecuredEndpoints
+      ?.map((e) => e.startsWith('/') ? e.substring(1) : e)
+      .toList();
 
   // Determine which actions were requested by the user.
   bool isSecurityActionRequested = authType != null ||
@@ -205,11 +208,15 @@ Map<String, dynamic> applyCliArguments({
       (normalizedUnsecuredEndpoints?.isNotEmpty ?? false) ||
       disableAuthGlobally;
 
-  bool isHttpMethodActionRequested = customHttpMethods != null && customHttpMethods.isNotEmpty;
+  bool isHttpMethodActionRequested =
+      customHttpMethods != null && customHttpMethods.isNotEmpty;
   bool isBaseUrlActionRequested = baseUrl != null && baseUrl.isNotEmpty;
 
   // Case: An update was run with no valid action flags.
-  if (updateMode && !isSecurityActionRequested && !isHttpMethodActionRequested && !isBaseUrlActionRequested) {
+  if (updateMode &&
+      !isSecurityActionRequested &&
+      !isHttpMethodActionRequested &&
+      !isBaseUrlActionRequested) {
     print('  -> No update flags provided. Nothing to do.');
     return updatedSpec;
   }
@@ -217,35 +224,80 @@ Map<String, dynamic> applyCliArguments({
   // --- Action 1: Handle Base URL ---
   if (isBaseUrlActionRequested) {
     print('  -> Setting base URL to: $baseUrl');
-    updatedSpec['servers'] = [{'url': baseUrl, 'description': 'Main API Server'}];
+    updatedSpec['servers'] = [
+      {'url': baseUrl, 'description': 'Main API Server'}
+    ];
   }
 
   // --- Action 2: Handle Security (This block only runs if a security flag is present) ---
   if (isSecurityActionRequested) {
     String? effectiveAuthType = authType;
     if (effectiveAuthType == null && !disableAuthGlobally) {
-      print('  -> Auth type not provided via CLI. Attempting to infer from existing spec...');
+      print(
+          '  -> Auth type not provided via CLI. Attempting to infer from existing spec...');
       final components = updatedSpec['components'] as Map<String, dynamic>?;
-      final securitySchemes = components?['securitySchemes'] as Map<String, dynamic>?;
+      final securitySchemes =
+          components?['securitySchemes'] as Map<String, dynamic>?;
       if (securitySchemes != null && securitySchemes.isNotEmpty) {
         effectiveAuthType = securitySchemes.keys.first;
         print('    - Inferred auth type: "$effectiveAuthType"');
       } else {
-        print('    - [ERROR] Cannot apply security: No --auth type provided and no securitySchemes found in apispec.json.');
+        print(
+            '    - [ERROR] Cannot apply security: No --auth type provided and no securitySchemes found in apispec.json.');
         return updatedSpec;
       }
     }
 
     if (authType != null) {
       print('  -> Defining/updating security scheme for type: $authType');
-      final components = (updatedSpec['components'] as Map<String, dynamic>?) ?? {};
-      final securitySchemes = (components['securitySchemes'] as Map<String, dynamic>?) ?? {};
+      final components =
+          (updatedSpec['components'] as Map<String, dynamic>?) ?? {};
+      final securitySchemes =
+          (components['securitySchemes'] as Map<String, dynamic>?) ?? {};
       switch (authType.toLowerCase()) {
-        case 'jwt': case 'bearer': securitySchemes[authType] = {'type': 'http', 'scheme': 'bearer', 'bearerFormat': 'JWT', 'description': authDescription ?? 'JWT authentication token'}; break;
-        case 'apikey': securitySchemes[authType] = {'type': 'apiKey', 'in': 'header', 'name': 'X-API-Key', 'description': authDescription ?? 'API key authentication'}; break;
-        case 'basic': securitySchemes[authType] = {'type': 'http', 'scheme': 'basic', 'description': authDescription ?? 'Basic authentication'}; break;
-        case 'oauth2': securitySchemes[authType] = {'type': 'oauth2', 'flows': {'implicit': {'authorizationUrl': '$baseUrl/oauth/authorize', 'scopes': {'read': 'Read access', 'write': 'Write access'}}}, 'description': authDescription ?? 'OAuth2 authentication'}; break;
-        default: securitySchemes[authType] = {'type': 'apiKey', 'in': 'header', 'name': 'Authorization', 'description': authDescription ?? 'Custom authentication'};
+        case 'jwt':
+        case 'bearer':
+          securitySchemes[authType] = {
+            'type': 'http',
+            'scheme': 'bearer',
+            'bearerFormat': 'JWT',
+            'description': authDescription ?? 'JWT authentication token'
+          };
+          break;
+        case 'apikey':
+          securitySchemes[authType] = {
+            'type': 'apiKey',
+            'in': 'header',
+            'name': 'X-API-Key',
+            'description': authDescription ?? 'API key authentication'
+          };
+          break;
+        case 'basic':
+          securitySchemes[authType] = {
+            'type': 'http',
+            'scheme': 'basic',
+            'description': authDescription ?? 'Basic authentication'
+          };
+          break;
+        case 'oauth2':
+          securitySchemes[authType] = {
+            'type': 'oauth2',
+            'flows': {
+              'implicit': {
+                'authorizationUrl': '$baseUrl/oauth/authorize',
+                'scopes': {'read': 'Read access', 'write': 'Write access'}
+              }
+            },
+            'description': authDescription ?? 'OAuth2 authentication'
+          };
+          break;
+        default:
+          securitySchemes[authType] = {
+            'type': 'apiKey',
+            'in': 'header',
+            'name': 'Authorization',
+            'description': authDescription ?? 'Custom authentication'
+          };
       }
       components['securitySchemes'] = securitySchemes;
       updatedSpec['components'] = components;
@@ -261,7 +313,8 @@ Map<String, dynamic> applyCliArguments({
     } else if (effectiveAuthType != null) {
       final isRewriteMode = !updateMode || authType != null;
       if (isRewriteMode) {
-        print('  -> Applying full security policy using auth type "$effectiveAuthType"...');
+        print(
+            '  -> Applying full security policy using auth type "$effectiveAuthType"...');
         for (final pathEntry in paths.entries) {
           final path = pathEntry.key;
           final pathItem = pathEntry.value as Map<String, dynamic>;
@@ -269,27 +322,48 @@ Map<String, dynamic> applyCliArguments({
           if (pathParts.length >= 2) {
             final endpointName = pathParts[0];
             final methodName = pathParts[1];
-            final action = _getSecurityAction(endpointName, methodName, normalizedSecuredEndpoints, normalizedUnsecuredEndpoints);
-            for (final operation in pathItem.values.cast<Map<String, dynamic>>()) {
+            final action = _getSecurityAction(endpointName, methodName,
+                normalizedSecuredEndpoints, normalizedUnsecuredEndpoints);
+            for (final operation
+                in pathItem.values.cast<Map<String, dynamic>>()) {
               final wasSecured = operation.containsKey('security');
               switch (action) {
-                case _SecurityAction.secure: if (!wasSecured) { print('    - SECURING endpoint: $path'); operation['security'] = [{effectiveAuthType: []}]; } break;
-                case _SecurityAction.unsecure: if (wasSecured) { print('    - UNSECURING endpoint: $path'); operation.remove('security'); } break;
-                case _SecurityAction.noChange: break;
+                case _SecurityAction.secure:
+                  if (!wasSecured) {
+                    print('    - SECURING endpoint: $path');
+                    operation['security'] = [
+                      {effectiveAuthType: []}
+                    ];
+                  }
+                  break;
+                case _SecurityAction.unsecure:
+                  if (wasSecured) {
+                    print('    - UNSECURING endpoint: $path');
+                    operation.remove('security');
+                  }
+                  break;
+                case _SecurityAction.noChange:
+                  break;
               }
             }
           }
         }
       } else {
-        print('  -> Applying security patches using auth type "$effectiveAuthType"...');
+        print(
+            '  -> Applying security patches using auth type "$effectiveAuthType"...');
         if (normalizedSecuredEndpoints != null) {
           for (final itemToSecure in normalizedSecuredEndpoints) {
             for (final pathEntry in paths.entries) {
-              final path = pathEntry.key.startsWith('/') ? pathEntry.key.substring(1) : pathEntry.key;
+              final path = pathEntry.key.startsWith('/')
+                  ? pathEntry.key.substring(1)
+                  : pathEntry.key;
               if (path == itemToSecure || path.startsWith('$itemToSecure/')) {
-                 print('    - SECURING endpoint: ${pathEntry.key}');
-                for (var op in (pathEntry.value as Map<String, dynamic>).values) {
-                  (op as Map<String, dynamic>)['security'] = [{effectiveAuthType: []}];
+                print('    - SECURING endpoint: ${pathEntry.key}');
+                for (var op
+                    in (pathEntry.value as Map<String, dynamic>).values) {
+                  (op as Map<String, dynamic>)['security'] = [
+                    {effectiveAuthType: []}
+                  ];
                 }
               }
             }
@@ -298,10 +372,14 @@ Map<String, dynamic> applyCliArguments({
         if (normalizedUnsecuredEndpoints != null) {
           for (final itemToUnsecure in normalizedUnsecuredEndpoints) {
             for (final pathEntry in paths.entries) {
-              final path = pathEntry.key.startsWith('/') ? pathEntry.key.substring(1) : pathEntry.key;
-              if (path == itemToUnsecure || path.startsWith('$itemToUnsecure/')) {
+              final path = pathEntry.key.startsWith('/')
+                  ? pathEntry.key.substring(1)
+                  : pathEntry.key;
+              if (path == itemToUnsecure ||
+                  path.startsWith('$itemToUnsecure/')) {
                 print('    - UNSECURING endpoint: ${pathEntry.key}');
-                for (var op in (pathEntry.value as Map<String, dynamic>).values) {
+                for (var op
+                    in (pathEntry.value as Map<String, dynamic>).values) {
                   (op as Map<String, dynamic>).remove('security');
                 }
               }
@@ -311,21 +389,27 @@ Map<String, dynamic> applyCliArguments({
       }
       if (secureSingleUrl != null && paths.containsKey(secureSingleUrl)) {
         print('    - Overriding: Securing single URL: $secureSingleUrl');
-        for (var op in (paths[secureSingleUrl] as Map<String, dynamic>).values) {
-          (op as Map<String, dynamic>)['security'] = [{effectiveAuthType: []}];
+        for (var op
+            in (paths[secureSingleUrl] as Map<String, dynamic>).values) {
+          (op as Map<String, dynamic>)['security'] = [
+            {effectiveAuthType: []}
+          ];
         }
       }
       if (unsecureSingleUrl != null && paths.containsKey(unsecureSingleUrl)) {
         print('    - Overriding: Unsecuring single URL: $unsecureSingleUrl');
-        for (var op in (paths[unsecureSingleUrl] as Map<String, dynamic>).values) {
+        for (var op
+            in (paths[unsecureSingleUrl] as Map<String, dynamic>).values) {
           (op as Map<String, dynamic>).remove('security');
         }
       }
     }
   } else if (!isHttpMethodActionRequested && !isBaseUrlActionRequested) {
     // This case now ONLY runs for a fresh `generate` with no flags at all.
-    print('  -> No security flags provided. Generating spec without authentication.');
-    (updatedSpec['components'] as Map<String, dynamic>?)?.remove('securitySchemes');
+    print(
+        '  -> No security flags provided. Generating spec without authentication.');
+    (updatedSpec['components'] as Map<String, dynamic>?)
+        ?.remove('securitySchemes');
     for (final pathEntry in paths.entries) {
       for (var op in (pathEntry.value as Map<String, dynamic>).values) {
         (op as Map<String, dynamic>).remove('security');
@@ -341,14 +425,18 @@ Map<String, dynamic> applyCliArguments({
       final newMethod = entry.value;
       if (paths.containsKey(path)) {
         final pathItem = paths[path] as Map<String, dynamic>;
-        final currentMethod = pathItem.keys.firstWhere((k) => ['get', 'post', 'put', 'delete', 'patch'].contains(k), orElse: () => '');
+        final currentMethod = pathItem.keys.firstWhere(
+            (k) => ['get', 'post', 'put', 'delete', 'patch'].contains(k),
+            orElse: () => '');
         if (currentMethod.isNotEmpty && currentMethod != newMethod) {
           final operation = pathItem.remove(currentMethod);
           pathItem[newMethod] = operation;
-          print('    - Changed $path from ${currentMethod.toUpperCase()} to ${newMethod.toUpperCase()}');
+          print(
+              '    - Changed $path from ${currentMethod.toUpperCase()} to ${newMethod.toUpperCase()}');
         }
       } else {
-        print('    - [Warning] Path $path not found for custom HTTP method assignment.');
+        print(
+            '    - [Warning] Path $path not found for custom HTTP method assignment.');
       }
     }
   }
@@ -361,19 +449,39 @@ Map<String, dynamic> applyCliArguments({
 // ===================================================================
 // (The OpenApiSpecGenerator and _EndpointVisitor classes from the previous answer go here, unchanged)
 class OpenApiSpecGenerator {
+  /// The root path of the project being analyzed.  
   final String projectPath;
+  
+  /// The analysis context collection used for parsing Dart files.
   final AnalysisContextCollection _collection;
 
+  /// Stores the OpenAPI paths information generated during analysis.
   final Map<String, dynamic> _paths = {};
+  
+  /// Stores the OpenAPI schema definitions generated during analysis.
   final Map<String, dynamic> _schemas = {};
+  
+  /// Public getter for accessing the generated schemas.
   Map<String, dynamic> get schemas => _schemas;
 
+  /// Maps package names to their file system locations.
   final Map<String, String> _packageLocations = {};
 
+  /// Creates a new OpenAPI specification generator for the given project path.
+  /// 
+  /// [projectPath] is the root directory of the Serverpod project to analyze.
   OpenApiSpecGenerator(this.projectPath)
       : _collection = AnalysisContextCollection(includedPaths: [projectPath]);
 
-  /// The main public method to run the entire generation process.
+  /// Generates the complete OpenAPI specification by analyzing the project.
+  /// 
+  /// This is the main entry point for the generation process. It performs the following steps:
+  /// 1. Initializes package locations by reading the package configuration
+  /// 2. Parses all local model files (.yaml and .spy.yaml) in the project
+  /// 3. Parses all endpoint Dart files to extract API information
+  /// 
+  /// The results are stored in the [_paths] and [_schemas] maps, which can be
+  /// accessed via [toJson] to get the complete OpenAPI specification.
   Future<void> generate() async {
     print('\n--- Starting OpenAPI Spec Generation ---');
     // Step 1: Initialize by mapping all package locations.
@@ -415,6 +523,10 @@ class OpenApiSpecGenerator {
     print('--- Generation Complete ---');
   }
 
+  /// Initializes the generator by mapping package names to their file system locations.
+  /// 
+  /// Reads the package_config.json file to determine the locations of all dependencies,
+  /// which is necessary for resolving references to models in external packages.
   Future<void> _initialize() async {
     final packageConfigFile =
         File(p.join(projectPath, '.dart_tool', 'package_config.json'));
@@ -438,6 +550,13 @@ class OpenApiSpecGenerator {
     print('  Found locations for ${_packageLocations.length} packages.');
   }
 
+  /// Parses a YAML model file and adds its schema to the OpenAPI specification.
+  /// 
+  /// Extracts class information, fields, and their types from the YAML file and
+  /// converts them to OpenAPI schema definitions. Also handles dependencies by
+  /// recursively parsing referenced model files.
+  /// 
+  /// [path] The file system path to the YAML model file to parse.
   Future<void> parseYamlModelFile(String path) async {
     try {
       final content = await File(path).readAsString();
@@ -487,6 +606,15 @@ class OpenApiSpecGenerator {
     }
   }
 
+  /// Maps a YAML type string to an OpenAPI schema definition.
+  /// 
+  /// Handles primitive types, lists, maps, and references to other model classes.
+  /// For references to other models, it may trigger parsing of those models if
+  /// they haven't been processed yet.
+  /// 
+  /// [yamlType] The type string from the YAML model file.
+  /// 
+  /// Returns a Map representing the OpenAPI schema for the type.
   Future<Map<String, dynamic>> _mapYamlTypeToOpenApiSchema(
       String yamlType) async {
     final isNullable = yamlType.endsWith('?');
@@ -537,6 +665,13 @@ class OpenApiSpecGenerator {
     }
   }
 
+  /// Finds and parses a model from a Serverpod module.
+  /// 
+  /// Used when a model references another model from a different module.
+  /// Locates the model file in the appropriate package and parses it.
+  /// 
+  /// [module] The name of the Serverpod module containing the model.
+  /// [className] The name of the class to find and parse.
   Future<void> _findAndParseModel(String module, String className) async {
     final packageName = 'serverpod_${module}_server';
     final packagePath = _packageLocations[packageName];
@@ -556,6 +691,13 @@ class OpenApiSpecGenerator {
     }
   }
 
+  /// Parses a Dart file to extract endpoint and method information.
+  /// 
+  /// Analyzes Dart files containing endpoint classes to extract API information
+  /// such as method names, parameters, and return types. The extracted information
+  /// is used to build the OpenAPI paths section.
+  /// 
+  /// [path] The file system path to the Dart file to parse.
   Future<void> parseDartFile(String path) async {
     final context = _collection.contextFor(path);
     final result = await context.currentSession.getResolvedUnit(path);
@@ -565,6 +707,14 @@ class OpenApiSpecGenerator {
     }
   }
 
+  /// Determines if a Dart type is a primitive type in the context of OpenAPI.
+  /// 
+  /// Primitive types include String, int, double, bool, DateTime, ByteData, Uri,
+  /// Map, and enums. These types can be directly mapped to OpenAPI schema types.
+  /// 
+  /// [type] The Dart type to check.
+  /// 
+  /// Returns true if the type is considered primitive, false otherwise.
   bool _isPrimitiveType(DartType type) {
     return type.isDartCoreString ||
         type.isDartCoreInt ||
@@ -577,6 +727,15 @@ class OpenApiSpecGenerator {
         (type is InterfaceType && type.element is EnumElement);
   }
 
+  /// Maps a Dart type to an OpenAPI schema definition.
+  /// 
+  /// Handles primitive types, lists, maps, and references to model classes.
+  /// For references to model classes, it may trigger parsing of those models
+  /// if they haven't been processed yet.
+  /// 
+  /// [type] The Dart type to map to an OpenAPI schema.
+  /// 
+  /// Returns a Map representing the OpenAPI schema for the type.
   Future<Map<String, dynamic>> mapDartTypeToOpenApiSchema(DartType type) async {
     if (type.isDartCoreString) return {'type': 'string'};
     if (type.isDartCoreInt) return {'type': 'integer', 'format': 'int64'};
@@ -623,6 +782,12 @@ class OpenApiSpecGenerator {
     return {};
   }
 
+  /// Converts the generated OpenAPI specification to a JSON-compatible Map.
+  /// 
+  /// This method should be called after [generate] to retrieve the complete
+  /// OpenAPI specification as a Map that can be serialized to JSON.
+  /// 
+  /// Returns a Map containing the complete OpenAPI specification.
   Map<String, dynamic> toJson() => {
         'openapi': '3.0.0',
         'info': {'title': 'My Serverpod API', 'version': '0.1.0'},
@@ -633,12 +798,31 @@ class OpenApiSpecGenerator {
         'components': {'schemas': _schemas}
       };
 
+  /// Sanitizes a class name by removing any module prefix.
+  /// 
+  /// [className] The class name to sanitize.
+  /// 
+  /// Returns the sanitized class name.
   String _sanitizeClassName(String className) => className.split(':').last;
+  
+  /// Converts a class name to the corresponding file name based on Serverpod conventions.
+  /// 
+  /// [className] The class name to convert.
+  /// 
+  /// Returns the file name for the class.
   String _classNameToFileName(String className) {
     final regExp = RegExp(r'(?<=[a-z])(?=[A-Z])');
     return '${className.replaceAllMapped(regExp, (m) => '_').toLowerCase()}.spy.yaml';
   }
 
+  /// Recursively finds all model files in a directory and its subdirectories.
+  /// 
+  /// Looks for files with .yaml or .spy.yaml extensions, which are the standard
+  /// extensions for Serverpod model files.
+  /// 
+  /// [dir] The directory to search in.
+  /// 
+  /// Returns a list of File objects representing the found model files.
   List<File> _findModelFilesRecursively(Directory dir) {
     final List<File> files = [];
     if (!dir.existsSync()) return files;
@@ -656,12 +840,25 @@ class OpenApiSpecGenerator {
 }
 
 // --- ENDPOINT VISITOR (Async, as per your original) ---
+/// A visitor that traverses the AST of a Dart file to find endpoint classes and methods.
+/// 
+/// This visitor is responsible for extracting API information from endpoint classes
+/// and converting it to OpenAPI path definitions.
 class _EndpointVisitor extends RecursiveAstVisitor<void> {
+  /// The OpenAPI specification generator that created this visitor.
   final OpenApiSpecGenerator generator;
+  
+  /// The name of the endpoint class currently being visited, or null if not in an endpoint.
   String? _currentEndpointName;
 
+  /// Creates a new endpoint visitor.
+  /// 
+  /// [generator] The OpenAPI specification generator that created this visitor.
   _EndpointVisitor(this.generator);
 
+  /// Visits a compilation unit to find endpoint classes.
+  /// 
+  /// [unit] The compilation unit to visit.
   Future<void> visitUnit(CompilationUnit unit) async {
     for (final declaration in unit.declarations) {
       if (declaration is ClassDeclaration) {
@@ -670,6 +867,11 @@ class _EndpointVisitor extends RecursiveAstVisitor<void> {
     }
   }
 
+  /// Visits a class declaration to check if it's an endpoint class.
+  /// 
+  /// An endpoint class is one that extends the Endpoint class.
+  /// 
+  /// [node] The class declaration to visit.
   @override
   Future<void> visitClassDeclaration(ClassDeclaration node) async {
     final superclass = node.extendsClause?.superclass.name2.lexeme;
@@ -686,11 +888,24 @@ class _EndpointVisitor extends RecursiveAstVisitor<void> {
     }
   }
 
+  /// Converts a string to camelCase.
+  /// 
+  /// Used to convert endpoint class names to endpoint paths.
+  /// 
+  /// [input] The string to convert.
+  /// 
+  /// Returns the camelCase version of the input string.
   String toCamelCase(String input) {
     if (input.isEmpty) return input;
     return input[0].toLowerCase() + input.substring(1);
   }
 
+  /// Visits a method declaration to extract API information.
+  /// 
+  /// Extracts method name, parameters, and return type to create an OpenAPI path definition.
+  /// Automatically determines if the method should be a GET or POST request based on parameter types.
+  /// 
+  /// [node] The method declaration to visit.
   @override
   Future<void> visitMethodDeclaration(MethodDeclaration node) async {
     if (_currentEndpointName == null) return;

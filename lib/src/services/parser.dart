@@ -10,9 +10,22 @@ import 'package:analyzer/dart/ast/visitor.dart';
 // ===================================================================
 // DATA MODELS (No changes needed)
 // ===================================================================
-class SwaggerSpec { final Map<String, SwaggerEndpoint> endpoints = {}; }
-class SwaggerEndpoint { final String name; final Map<String, SwaggerMethod> methods = {}; SwaggerEndpoint(this.name); }
-class SwaggerMethod { final String name; final Map<String, SwaggerParameter> parameters = {}; SwaggerMethod(this.name); }
+class SwaggerSpec {
+  final Map<String, SwaggerEndpoint> endpoints = {};
+}
+
+class SwaggerEndpoint {
+  final String name;
+  final Map<String, SwaggerMethod> methods = {};
+  SwaggerEndpoint(this.name);
+}
+
+class SwaggerMethod {
+  final String name;
+  final Map<String, SwaggerParameter> parameters = {};
+  SwaggerMethod(this.name);
+}
+
 class SwaggerParameter {
   final String name;
   final String type;
@@ -56,16 +69,23 @@ class EndpointsVisitor extends RecursiveAstVisitor<void> {
   // which is a shared parent class for MethodInvocation and InstanceCreationExpression.
   void _parseEndpointConnector(InvocationExpression connectorNode) {
     try {
-      final endpointNameArg = connectorNode.argumentList.arguments.whereType<NamedExpression>().firstWhere((arg) => arg.name.label.name == 'name');
-      final endpointName = (endpointNameArg.expression as SimpleStringLiteral).value;
+      final endpointNameArg = connectorNode.argumentList.arguments
+          .whereType<NamedExpression>()
+          .firstWhere((arg) => arg.name.label.name == 'name');
+      final endpointName =
+          (endpointNameArg.expression as SimpleStringLiteral).value;
       print('  -> Parsing endpoint: $endpointName');
 
       final endpoint = SwaggerEndpoint(endpointName);
 
-      final methodConnectorsArg = connectorNode.argumentList.arguments.whereType<NamedExpression>().firstWhere((arg) => arg.name.label.name == 'methodConnectors');
-      final methodConnectorsMap = methodConnectorsArg.expression as SetOrMapLiteral;
+      final methodConnectorsArg = connectorNode.argumentList.arguments
+          .whereType<NamedExpression>()
+          .firstWhere((arg) => arg.name.label.name == 'methodConnectors');
+      final methodConnectorsMap =
+          methodConnectorsArg.expression as SetOrMapLiteral;
 
-      for (var entry in methodConnectorsMap.elements.whereType<MapLiteralEntry>()) {
+      for (var entry
+          in methodConnectorsMap.elements.whereType<MapLiteralEntry>()) {
         final methodName = (entry.key as SimpleStringLiteral).value;
         print('    -> Parsing method: $methodName');
         final method = SwaggerMethod(methodName);
@@ -82,25 +102,35 @@ class EndpointsVisitor extends RecursiveAstVisitor<void> {
     }
   }
 
-  void _parseMethodConnector(InvocationExpression methodNode, SwaggerMethod method) {
-    final paramsArg = methodNode.argumentList.arguments.whereType<NamedExpression>().firstWhere((arg) => arg.name.label.name == 'params');
+  void _parseMethodConnector(
+      InvocationExpression methodNode, SwaggerMethod method) {
+    final paramsArg = methodNode.argumentList.arguments
+        .whereType<NamedExpression>()
+        .firstWhere((arg) => arg.name.label.name == 'params');
     final paramsMap = paramsArg.expression as SetOrMapLiteral;
 
     for (var entry in paramsMap.elements.whereType<MapLiteralEntry>()) {
       final paramName = (entry.key as SimpleStringLiteral).value;
       if (entry.value is InvocationExpression) {
-        final param = _parseParameterDescription(entry.value as InvocationExpression);
+        final param =
+            _parseParameterDescription(entry.value as InvocationExpression);
         method.parameters[paramName] = param;
       }
     }
   }
 
   SwaggerParameter _parseParameterDescription(InvocationExpression paramNode) {
-    final nameArg = paramNode.argumentList.arguments.whereType<NamedExpression>().firstWhere((arg) => arg.name.label.name == 'name');
+    final nameArg = paramNode.argumentList.arguments
+        .whereType<NamedExpression>()
+        .firstWhere((arg) => arg.name.label.name == 'name');
     final paramName = (nameArg.expression as SimpleStringLiteral).value;
-    final nullableArg = paramNode.argumentList.arguments.whereType<NamedExpression>().firstWhere((arg) => arg.name.label.name == 'nullable');
+    final nullableArg = paramNode.argumentList.arguments
+        .whereType<NamedExpression>()
+        .firstWhere((arg) => arg.name.label.name == 'nullable');
     final isNullable = (nullableArg.expression as BooleanLiteral).value;
-    final typeArg = paramNode.argumentList.arguments.whereType<NamedExpression>().firstWhere((arg) => arg.name.label.name == 'type');
+    final typeArg = paramNode.argumentList.arguments
+        .whereType<NamedExpression>()
+        .firstWhere((arg) => arg.name.label.name == 'type');
 
     String paramType = 'dynamic';
     bool isMapType = false;
@@ -108,13 +138,16 @@ class EndpointsVisitor extends RecursiveAstVisitor<void> {
 
     if (typeArg.expression is InvocationExpression) {
       final typeInvocation = typeArg.expression as InvocationExpression;
-      if (typeInvocation.typeArguments != null && typeInvocation.typeArguments!.arguments.isNotEmpty) {
+      if (typeInvocation.typeArguments != null &&
+          typeInvocation.typeArguments!.arguments.isNotEmpty) {
         paramType = typeInvocation.typeArguments!.arguments.first.toSource();
 
         // Check if the parameter type is a Map or contains 'Map' in its name
         isMapType = paramType.contains('Map') ||
-                    paramType.startsWith('_i') && paramType.contains('Post') || // Common naming for POST request objects
-                    paramType.contains('Request'); // Common naming for request objects
+            paramType.startsWith('_i') &&
+                paramType.contains(
+                    'Post') || // Common naming for POST request objects
+            paramType.contains('Request'); // Common naming for request objects
 
         // Extract type properties based on naming conventions
         if (isMapType) {
@@ -135,12 +168,15 @@ class EndpointsVisitor extends RecursiveAstVisitor<void> {
               'properties': {
                 'title': {'type': 'string', 'description': 'Post title'},
                 'content': {'type': 'string', 'description': 'Post content'},
-                'tags': {'type': 'array', 'items': {'type': 'string'}, 'description': 'Post tags'}
+                'tags': {
+                  'type': 'array',
+                  'items': {'type': 'string'},
+                  'description': 'Post tags'
+                }
               },
               'required': ['title', 'content']
             };
-          }
-          else if (paramType.contains('Request')) {
+          } else if (paramType.contains('Request')) {
             // Generic request object properties
             typeProperties = {
               'properties': {
@@ -162,7 +198,8 @@ class EndpointsVisitor extends RecursiveAstVisitor<void> {
       }
     }
 
-    print('      -> Found parameter: $paramName (type: $paramType, isMapType: $isMapType)');
+    print(
+        '      -> Found parameter: $paramName (type: $paramType, isMapType: $isMapType)');
     return SwaggerParameter(
       name: paramName,
       type: paramType,
@@ -186,8 +223,10 @@ void main(List<String> args) {
   String? secureSingleUrl;
   bool disableAuthGlobally = false;
   bool verbose = false; // Flag to indicate verbose output
-  bool updateMode = false; // Flag to indicate update mode instead of full regeneration
-  Map<String, String> customHttpMethods = {}; // Map to store custom HTTP methods for specific endpoints
+  bool updateMode =
+      false; // Flag to indicate update mode instead of full regeneration
+  Map<String, String> customHttpMethods =
+      {}; // Map to store custom HTTP methods for specific endpoints
 
   for (var arg in args) {
     if (arg.startsWith('--base-url=')) {
@@ -214,7 +253,8 @@ void main(List<String> args) {
         customHttpMethods[path] = method;
         print('Setting HTTP method for $path to ${method.toUpperCase()}');
       } else {
-        print('Warning: Invalid --http-method format. Use endpoint/method:POST or /endpoint/method:PUT');
+        print(
+            'Warning: Invalid --http-method format. Use endpoint/method:POST or /endpoint/method:PUT');
       }
     } else if (arg == '--unauth' || arg == '--disable-auth') {
       disableAuthGlobally = true;
@@ -228,7 +268,8 @@ void main(List<String> args) {
   if (baseUrl != null) {
     print('Using custom base URL: $baseUrl');
   } else {
-    print('Warning: No --base-url provided. "Try it out" may use the wrong host.');
+    print(
+        'Warning: No --base-url provided. "Try it out" may use the wrong host.');
   }
 
   // Handle authentication configuration
@@ -242,7 +283,8 @@ void main(List<String> args) {
     } else if (securedEndpoints != null && securedEndpoints.isNotEmpty) {
       print('Securing specific endpoints: ${securedEndpoints.join(', ')}');
     } else if (unsecuredEndpoints != null && unsecuredEndpoints.isNotEmpty) {
-      print('Explicitly unsecuring endpoints: ${unsecuredEndpoints.join(', ')}');
+      print(
+          'Explicitly unsecuring endpoints: ${unsecuredEndpoints.join(', ')}');
     } else {
       print('Securing all endpoints');
     }
@@ -257,7 +299,8 @@ void main(List<String> args) {
   if (updateMode && outputFile.existsSync()) {
     try {
       // Read the existing apispec.json file
-      final existingJson = jsonDecode(outputFile.readAsStringSync()) as Map<String, dynamic>;
+      final existingJson =
+          jsonDecode(outputFile.readAsStringSync()) as Map<String, dynamic>;
       print('📝 Update mode: Modifying existing OpenAPI specification');
 
       // Apply updates to the existing specification
@@ -281,7 +324,8 @@ void main(List<String> args) {
 
   // If not in update mode or update failed, generate from scratch
   if (!updateMode) {
-    final endpointsFile = File(p.join(projectRoot.path, 'lib', 'src', 'generated', 'endpoints.dart'));
+    final endpointsFile = File(
+        p.join(projectRoot.path, 'lib', 'src', 'generated', 'endpoints.dart'));
 
     if (!endpointsFile.existsSync()) {
       print('Error: "endpoints.dart" not found.');
@@ -289,7 +333,8 @@ void main(List<String> args) {
     }
 
     final content = endpointsFile.readAsStringSync();
-    final parseResult = parseString(content: content, throwIfDiagnostics: false);
+    final parseResult =
+        parseString(content: content, throwIfDiagnostics: false);
 
     final visitor = EndpointsVisitor();
 
@@ -331,19 +376,21 @@ void main(List<String> args) {
     print('📊 Specification contains ${openApiJson['paths'].length} endpoints');
     if (openApiJson.containsKey('components') &&
         openApiJson['components'].containsKey('securitySchemes')) {
-      print('🔒 Security schemes defined: ${openApiJson['components']['securitySchemes'].keys.join(', ')}');
+      print(
+          '🔒 Security schemes defined: ${openApiJson['components']['securitySchemes'].keys.join(', ')}');
     }
   }
 
   print(updateMode
-    ? '✅ Successfully updated apispec.json!'
-    : '✅ Successfully generated apispec.json!');
+      ? '✅ Successfully updated apispec.json!'
+      : '✅ Successfully generated apispec.json!');
 }
 
 // ===================================================================
 // HELPER FUNCTIONS (UPDATED TO HANDLE BASE URL AND AUTHENTICATION)
 // ===================================================================
-Map<String, dynamic> generateOpenApiMap(SwaggerSpec spec, {
+Map<String, dynamic> generateOpenApiMap(
+  SwaggerSpec spec, {
   String? baseUrl,
   String? authType,
   String? authDescription,
@@ -360,14 +407,17 @@ Map<String, dynamic> generateOpenApiMap(SwaggerSpec spec, {
       final parameters = <Map<String, dynamic>>[];
 
       // Check if any parameter is a Map type, which indicates this should be a POST request
-      bool hasMapParameter = method.parameters.values.any((param) => param.isMapType);
+      bool hasMapParameter =
+          method.parameters.values.any((param) => param.isMapType);
 
       // Only add non-Map parameters as query parameters
       method.parameters.forEach((paramName, param) {
         // Skip Map parameters as they will be in the request body
         if (!hasMapParameter || !param.isMapType) {
           parameters.add({
-            'name': param.name, 'in': 'query', 'required': !param.isNullable,
+            'name': param.name,
+            'in': 'query',
+            'required': !param.isNullable,
             'schema': {'type': _mapDartTypeToOpenApi(param.type)}
           });
         }
@@ -377,7 +427,9 @@ Map<String, dynamic> generateOpenApiMap(SwaggerSpec spec, {
         'summary': 'Call the $methodName method.',
         'tags': [endpointName],
         'parameters': parameters,
-        'responses': {'200': {'description': 'Success'}}
+        'responses': {
+          '200': {'description': 'Success'}
+        }
       };
 
       // Add security requirement if authentication is enabled, not globally disabled, and this endpoint should be secured
@@ -388,13 +440,16 @@ Map<String, dynamic> generateOpenApiMap(SwaggerSpec spec, {
         shouldSecure = (secureSingleUrl == path);
       } else {
         // Otherwise use the normal endpoint security logic
-        shouldSecure = _shouldRequireAuth(endpointName, methodName, securedEndpoints, unsecuredEndpoints);
+        shouldSecure = _shouldRequireAuth(
+            endpointName, methodName, securedEndpoints, unsecuredEndpoints);
       }
 
       if (authType != null && !disableAuthGlobally && shouldSecure) {
-        operation['security'] = [{
-          authType: [],
-        }];
+        operation['security'] = [
+          {
+            authType: [],
+          }
+        ];
       }
 
       // Determine the HTTP method to use for this endpoint
@@ -403,7 +458,8 @@ Map<String, dynamic> generateOpenApiMap(SwaggerSpec spec, {
       // Set HTTP method to POST if any parameter is a Map type
       if (hasMapParameter) {
         httpMethod = 'post';
-        print('      -> Setting HTTP method to POST for $path because it has Map parameters');
+        print(
+            '      -> Setting HTTP method to POST for $path because it has Map parameters');
 
         // Add requestBody for POST methods with Map parameters
         // Find the Map parameters to include in the request body
@@ -432,14 +488,16 @@ Map<String, dynamic> generateOpenApiMap(SwaggerSpec spec, {
             if (param.typeProperties.isNotEmpty) {
               if (param.typeProperties.containsKey('properties')) {
                 // Convert properties to a Map<String, dynamic>
-                final props = Map<String, dynamic>.from(param.typeProperties['properties'] as Map);
+                final props = Map<String, dynamic>.from(
+                    param.typeProperties['properties'] as Map);
                 objectSchema['properties'] = props;
               }
 
               // Add required properties if specified
               if (param.typeProperties.containsKey('required')) {
                 // Convert required to a List<String>
-                final required = List<String>.from(param.typeProperties['required'] as List);
+                final required =
+                    List<String>.from(param.typeProperties['required'] as List);
                 objectSchema['required'] = required;
               }
             }
@@ -469,9 +527,7 @@ Map<String, dynamic> generateOpenApiMap(SwaggerSpec spec, {
         operation['requestBody'] = <String, dynamic>{
           'required': true,
           'content': <String, dynamic>{
-            'application/json': <String, dynamic>{
-              'schema': requestBodySchema
-            }
+            'application/json': <String, dynamic>{'schema': requestBodySchema}
           }
         };
       }
@@ -481,9 +537,7 @@ Map<String, dynamic> generateOpenApiMap(SwaggerSpec spec, {
         httpMethod = customHttpMethods[path]!;
       }
 
-      paths[path] = {
-        httpMethod: operation
-      };
+      paths[path] = {httpMethod: operation};
     });
   });
 
@@ -548,7 +602,8 @@ Map<String, dynamic> generateOpenApiMap(SwaggerSpec spec, {
         };
         break;
       default:
-        print('Warning: Unknown auth type "$authType". Using as custom security scheme name.');
+        print(
+            'Warning: Unknown auth type "$authType". Using as custom security scheme name.');
         securitySchemes[authType] = {
           'type': 'apiKey',
           'in': 'header',
@@ -567,15 +622,22 @@ Map<String, dynamic> generateOpenApiMap(SwaggerSpec spec, {
 
 String _mapDartTypeToOpenApi(String dartType) {
   switch (dartType.toLowerCase()) {
-    case 'string': return 'string';
-    case 'int': case 'double': case 'num': return 'number';
-    case 'bool': return 'boolean';
-    default: return 'object';
+    case 'string':
+      return 'string';
+    case 'int':
+    case 'double':
+    case 'num':
+      return 'number';
+    case 'bool':
+      return 'boolean';
+    default:
+      return 'object';
   }
 }
 
 // Helper function to determine if an endpoint should require authentication
-bool _shouldRequireAuth(String endpointName, String methodName, List<String>? securedEndpoints, List<String>? unsecuredEndpoints) {
+bool _shouldRequireAuth(String endpointName, String methodName,
+    List<String>? securedEndpoints, List<String>? unsecuredEndpoints) {
   // First check if this endpoint is explicitly unsecured
   if (unsecuredEndpoints != null && unsecuredEndpoints.isNotEmpty) {
     // Check if this specific endpoint+method is in the unsecured list
@@ -645,7 +707,8 @@ Map<String, dynamic> updateOpenApiMap(
       components['securitySchemes'] = {};
     }
 
-    final securitySchemes = components['securitySchemes'] as Map<String, dynamic>;
+    final securitySchemes =
+        components['securitySchemes'] as Map<String, dynamic>;
 
     switch (authType.toLowerCase()) {
       case 'jwt':
@@ -688,7 +751,8 @@ Map<String, dynamic> updateOpenApiMap(
         };
         break;
       default:
-        print('Warning: Unknown auth type "$authType". Using as custom security scheme name.');
+        print(
+            'Warning: Unknown auth type "$authType". Using as custom security scheme name.');
         securitySchemes[authType] = {
           'type': 'apiKey',
           'in': 'header',
@@ -714,7 +778,8 @@ Map<String, dynamic> updateOpenApiMap(
         Map<String, dynamic>? operation;
 
         for (final methodEntry in pathItem.entries) {
-          if (['get', 'post', 'put', 'delete', 'patch', 'options', 'head'].contains(methodEntry.key)) {
+          if (['get', 'post', 'put', 'delete', 'patch', 'options', 'head']
+              .contains(methodEntry.key)) {
             currentMethod = methodEntry.key;
             operation = methodEntry.value as Map<String, dynamic>;
             break;
@@ -722,17 +787,21 @@ Map<String, dynamic> updateOpenApiMap(
         }
 
         // If we found an existing operation, move it to the new method
-        if (currentMethod != null && operation != null && currentMethod != newMethod) {
+        if (currentMethod != null &&
+            operation != null &&
+            currentMethod != newMethod) {
           // Remove the old method
           pathItem.remove(currentMethod);
 
           // Add the operation with the new method
           pathItem[newMethod] = operation;
 
-          print('Updated HTTP method for $path from ${currentMethod.toUpperCase()} to ${newMethod.toUpperCase()}');
+          print(
+              'Updated HTTP method for $path from ${currentMethod.toUpperCase()} to ${newMethod.toUpperCase()}');
         }
       } else {
-        print('Warning: Path $path not found in the OpenAPI specification. Cannot update HTTP method.');
+        print(
+            'Warning: Path $path not found in the OpenAPI specification. Cannot update HTTP method.');
       }
     }
   }
@@ -746,7 +815,8 @@ Map<String, dynamic> updateOpenApiMap(
       final pathItem = pathEntry.value as Map<String, dynamic>;
 
       for (final methodEntry in pathItem.entries) {
-        if (['get', 'post', 'put', 'delete', 'patch', 'options', 'head'].contains(methodEntry.key)) {
+        if (['get', 'post', 'put', 'delete', 'patch', 'options', 'head']
+            .contains(methodEntry.key)) {
           final operation = methodEntry.value as Map<String, dynamic>;
 
           // Determine if this endpoint should be secured
@@ -762,15 +832,18 @@ Map<String, dynamic> updateOpenApiMap(
               final endpointName = pathParts[1];
               final methodName = pathParts[2];
 
-              shouldSecure = _shouldRequireAuth(endpointName, methodName, securedEndpoints, unsecuredEndpoints);
+              shouldSecure = _shouldRequireAuth(endpointName, methodName,
+                  securedEndpoints, unsecuredEndpoints);
             }
           }
 
           // Update security requirement based on shouldSecure
           if (shouldSecure) {
-            operation['security'] = [{
-              authType: [],
-            }];
+            operation['security'] = [
+              {
+                authType: [],
+              }
+            ];
           } else {
             // Remove security requirement if it exists
             operation.remove('security');

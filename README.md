@@ -8,6 +8,9 @@ A package to automatically generate and serve Swagger UI for a Serverpod backend
 - Serves Swagger UI directly from your Serverpod server
 - Provides an interactive interface for exploring and testing your API endpoints
 - Supports all Serverpod data types and custom classes
+- Intelligent HTTP method detection based on parameter types
+- Comprehensive model parsing and schema generation
+- Flexible authentication configuration
 - Compatible with Serverpod 2.8.0
 
 ## Requirements
@@ -41,6 +44,23 @@ dart run serverpod_swagger_ui:generate --base-url=http://localhost:8080
 ```
 
 This will create an `apispec.json` file in your project root directory. The `--base-url` parameter specifies the base URL for your API endpoints.
+
+#### Command-Line Arguments
+
+The generator supports various command-line arguments to customize your OpenAPI specification:
+
+| Argument | Description | Example |
+|----------|-------------|--------|
+| `--base-url` | Sets the base URL for your API server | `--base-url=https://api.example.com` |
+| `--auth` | Specifies the authentication type (jwt, apikey, basic, oauth2) | `--auth=jwt` |
+| `--auth-description` | Provides a custom description for the authentication scheme | `--auth-description="JWT token from /auth endpoint"` |
+| `--secure-endpoints` | Comma-separated list of endpoints to secure | `--secure-endpoints=users,posts/create` |
+| `--unsecure-endpoints` | Comma-separated list of endpoints to exclude from security | `--unsecure-endpoints=health,status` |
+| `--secure-single-url` | Secures a specific URL endpoint | `--secure-single-url=/jwtAuth/getCurrentUser` |
+| `--http-method` | Sets the HTTP method for a specific endpoint | `--http-method=profile/user:post` |
+| `--update` | Updates an existing specification instead of regenerating | `--update` |
+| `--unauth` or `--disable-auth` | Disables authentication while preserving configuration | `--unauth` |
+| `--verbose` | Displays detailed information about the generation process | `--verbose` |
 
 If you want to see detailed information about the specification generation process, you can use the `--verbose` flag:
 
@@ -133,8 +153,51 @@ http://localhost:8082/swagger/
 The package works by:
 
 1. Reading your Serverpod endpoints.dart file to understand your API structure
-2. Converting the protocol definitions to OpenAPI 3.0 format
-3. Serving the Swagger UI interface with your API documentation
+2. Parsing your project's data models to create accurate OpenAPI schemas
+3. Converting the protocol definitions to OpenAPI 3.0 format
+4. Serving the Swagger UI interface with your API documentation
+
+### Model Parsing and Schema Generation
+
+The generator performs comprehensive parsing of your project's data models to create accurate OpenAPI schemas:
+
+#### YAML Model Parsing
+
+The generator parses Serverpod's YAML model files (`.yaml` or `.spy.yaml`) to extract:
+
+- Class definitions and properties
+- Field types and nullability
+- Relationships between models
+
+This information is used to create detailed OpenAPI schema definitions that accurately represent your data models.
+
+#### Type Mapping
+
+The generator maps Dart and YAML types to OpenAPI schema types:
+
+| Dart/YAML Type | OpenAPI Schema Type |
+|----------------|---------------------|
+| String | string |
+| int | integer (int64) |
+| double | number (double) |
+| bool | boolean |
+| DateTime | string (date-time) |
+| ByteData | string (byte) |
+| Duration | string |
+| Uri | string (uri) |
+| List<T> | array |
+| Map<K,V> | object |
+| Custom classes | $ref to schema |
+
+#### Dependency Resolution
+
+When the generator encounters references to models from other Serverpod modules:
+
+1. It identifies the module and class name
+2. Locates the model file in the appropriate package
+3. Parses the model and adds it to the schema definitions
+
+This ensures that all referenced models are properly included in the OpenAPI specification.
 
 ## Generating API Specification
 
@@ -151,6 +214,53 @@ The script will:
 1. Parse your Serverpod endpoints from the generated code
 2. Create an OpenAPI 3.0 specification
 3. Save it as `apispec.json` in your project root
+
+### Endpoint Detection and Path Generation
+
+The generator automatically detects and processes your Serverpod endpoints to create OpenAPI paths:
+
+#### Endpoint Class Detection
+
+The generator scans your project's Dart files to find classes that extend `Endpoint`. For each endpoint class:
+
+1. The class name is converted to camelCase and used as the endpoint name
+2. Public methods in the class are identified as API operations
+3. Method parameters are analyzed to determine request structure
+4. Return types are analyzed to determine response structure
+
+#### Path Generation
+
+For each endpoint method, the generator creates an OpenAPI path with:
+
+- **Path**: `/{endpointName}/{methodName}`
+- **Operation ID**: `{endpointName}.{methodName}`
+- **Tags**: Based on the endpoint name for grouping in Swagger UI
+- **Parameters**: Generated from method parameters (excluding Session)
+- **Request Body**: Generated for POST methods
+- **Responses**: Based on the method's return type
+
+#### Special Method Handling
+
+The generator automatically excludes certain special methods from the API documentation:
+
+- Methods starting with underscore (`_`)
+- Standard Serverpod lifecycle methods: `initialize`, `streamOpened`, `streamClosed`, `handleStreamMessage`
+
+This ensures that only your actual API methods are included in the documentation.
+
+## Best Practices and Tips
+
+### Optimizing Your OpenAPI Generation
+
+- **Use Update Mode for Incremental Changes**: When making small changes to your API, use the `--update` flag to avoid regenerating the entire specification.
+
+- **Leverage Automatic HTTP Method Detection**: Let the generator determine the appropriate HTTP methods based on your parameter types, and only override when necessary.
+
+- **Organize Endpoints with Security Groups**: Use `--secure-endpoints` and `--unsecure-endpoints` to create logical security groups rather than securing endpoints individually.
+
+- **Provide Meaningful Base URLs**: Set the `--base-url` parameter to match your actual API server URL for better developer experience.
+
+- **Use Verbose Mode During Development**: Enable the `--verbose` flag during development to get detailed information about the generation process.
 
 ## Troubleshooting
 
@@ -172,6 +282,18 @@ The script will:
 4. **"Try it out" feature not working**:
    - If the "Try it out" feature sends requests to the wrong host, regenerate your API spec with the `--base-url` parameter
    - Run `dart bin/generate.dart --base-url=http://localhost:8082` (adjust the URL to match your server)
+
+5. **Missing Endpoints**: 
+   - If endpoints are missing from your specification, ensure that your endpoint classes properly extend `Endpoint` and that methods are public.
+
+6. **Incorrect HTTP Methods**: 
+   - If endpoints have incorrect HTTP methods, use the `--http-method` parameter to override the automatic detection.
+
+7. **Authentication Issues**: 
+   - If authentication isn't working as expected, check that you've specified the correct `--auth` type and applied security to the right endpoints.
+
+8. **Schema Problems**: 
+   - If schemas are incomplete or incorrect, ensure that your model files are properly formatted and that all dependencies are accessible.
 
 ## Customization
 
@@ -241,15 +363,37 @@ You can also use multiple `--http-method` parameters to set different methods fo
 dart run serverpod_swagger_ui:generate --http-method=profile/user:post --http-method=users/create:put --base-url=http://localhost:8080
 ```
 
-#### Automatic Method Detection
+#### Automatic HTTP Method Detection
 
-The generator automatically detects appropriate HTTP methods based on parameter types:
+The generator intelligently determines the appropriate HTTP methods for your endpoints based on their parameter types:
 
-- Endpoints with Map parameters or types containing 'Map', 'Post', or 'Request' are automatically set as POST methods
-- Map-type parameters are included ONLY in the request body, not as query parameters
-- Non-Map parameters remain as query parameters
-- Request bodies are structured with parameter names as keys (e.g., `{"userPost": {...}}`) 
-- This automatic detection can be overridden using the `--http-method` parameter
+- **POST Detection**: Endpoints are automatically set as POST methods when they have:
+  - Parameters that are Maps
+  - Parameters with types containing 'Map', 'Post', or 'Request' in their names
+  - Any non-primitive parameter types
+
+- **Parameter Handling**:
+  - Complex type parameters are included in the JSON request body
+  - Primitive type parameters (string, int, bool, etc.) are included as query parameters for GET requests
+  - Map-type parameters are included ONLY in the request body, not as query parameters
+
+- **Request Body Structure**: Request bodies are structured with parameter names as keys (e.g., `{"userPost": {...}}`) 
+
+- **Override Capability**: This automatic detection can be overridden by explicitly specifying a method using the `--http-method` parameter
+
+For example, if you have an endpoint method like this:
+
+```dart
+Future<void> postUser(Session session, UserPost request) async {
+  // Implementation
+}
+```
+
+The generator will automatically:
+1. Set this as a POST method
+2. Include the `request` parameter in the JSON request body
+3. Exclude the `request` parameter from query parameters
+4. Create a proper OpenAPI specification with a structured request body schema
 
 #### Dynamic Property Generation
 
@@ -257,10 +401,20 @@ The generator intelligently creates structured request body schemas based on par
 
 - For parameters with types containing 'User', it generates properties like 'name', 'email', and 'age'
 - For parameters with types containing 'Post', it generates properties like 'title', 'content', and 'tags'
-- For other common types, it generates appropriate properties based on naming conventions
-- Non-nullable Map parameters are automatically marked as required in the request body
+- For parameters with types containing 'Request', it generates generic properties like 'data' and 'options'
+- For other Map types, it generates default properties like 'id' and 'data'
 
-This makes your API documentation more informative and accurate, showing the expected structure of request bodies.
+This dynamic property generation makes your API documentation more informative and accurate, showing the expected structure of request bodies based on parameter types.
+
+#### Nullability and Required Fields
+
+The generator respects Dart's nullability system:
+
+- Non-nullable parameters are marked as required in the OpenAPI specification
+- Nullable parameters (with `?` suffix) are optional
+- The generator automatically marks non-nullable Map parameters as required in the request body
+
+This ensures that your API documentation correctly reflects your endpoint's requirements.
 
 See the [detailed documentation](documentation.md#dynamic-property-generation) for more information.
 
@@ -454,6 +608,10 @@ Map<String, dynamic> generateOpenApiMap(SwaggerSpec spec, {String? baseUrl}) {
   return openApiMap;
 }
 ```
+
+## Conclusion
+
+The Serverpod Swagger UI generator provides a powerful and flexible way to create OpenAPI specifications for your Serverpod applications. By leveraging the various command-line arguments and features described in this documentation, you can create comprehensive API documentation that accurately reflects your endpoints, models, and security requirements.
 
 ## Contributing
 

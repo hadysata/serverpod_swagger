@@ -4,16 +4,33 @@ import 'package:serverpod/serverpod.dart';
 import 'package:path/path.dart' as p;
 
 /// A development-friendly route that serves a live-reloading Swagger UI.
+/// 
 /// It re-reads the apispec.json on every request to show changes instantly.
+/// This route is designed to be used during development to provide an
+/// interactive API documentation interface that updates as you modify your code.
 class SwaggerUIRoute extends Route {
+  /// The root directory of the project where apispec.json is located.
   final Directory _projectRoot;
+  
+  /// The pre-generated HTML content for the Swagger UI page.
   final String _swaggerHtml;
+  
+  /// The base path where the Swagger UI will be mounted (e.g., '/swagger/').
   final String _mountPath;
+  
+  /// The path without trailing slash that will redirect to _mountPath.
   final String _redirectPath;
+  
+  /// The full path to the API specification JSON file.
   final String _specPath;
 
+  /// Creates a new SwaggerUIRoute instance.
+  /// 
+  /// [projectRoot] is the directory where the apispec.json file is located.
+  /// [mountPath] is the URL path where the Swagger UI will be served, must end with a slash.
   SwaggerUIRoute(Directory projectRoot, {String mountPath = '/swagger/'})
-      : assert(mountPath.endsWith('/'), 'mountPath must end with a trailing slash.'),
+      : assert(mountPath.endsWith('/'),
+            'mountPath must end with a trailing slash.'),
         _projectRoot = projectRoot,
         _mountPath = mountPath,
         _redirectPath = mountPath.substring(0, mountPath.length - 1),
@@ -21,6 +38,9 @@ class SwaggerUIRoute extends Route {
         // The HTML is static, so we can generate it once.
         _swaggerHtml = _getSwaggerHtml();
 
+  /// Handles incoming HTTP requests and serves the Swagger UI or API specification.
+  /// 
+  /// Returns true if the request was handled by this route, false otherwise.
   @override
   Future<bool> handleCall(Session session, HttpRequest request) async {
     final path = request.uri.path;
@@ -30,10 +50,11 @@ class SwaggerUIRoute extends Route {
     // 1. Handle the request for the JSON spec file.
     if (path == _specPath) {
       session.log('Serving LIVE version of API spec at $path');
-      
+
       // --- FIX FOR BROWSER CACHING ---
       // Add headers to tell the browser to NEVER cache this specific file.
-      request.response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+      request.response.headers
+          .set('Cache-Control', 'no-store, no-cache, must-revalidate');
       request.response.headers.set('Pragma', 'no-cache');
       request.response.headers.set('Expires', '0');
       // --- END OF FIX ---
@@ -45,7 +66,8 @@ class SwaggerUIRoute extends Route {
         request.response.write(await specFile.readAsString());
       } else {
         request.response.statusCode = HttpStatus.notFound;
-        request.response.write('Error: apispec.json not found at ${specFile.path}');
+        request.response
+            .write('Error: apispec.json not found at ${specFile.path}');
       }
 
       await request.response.close();
@@ -72,8 +94,12 @@ class SwaggerUIRoute extends Route {
 
     return false;
   }
-  
-  // This helper is static and can be called from the constructor.
+
+  /// Generates the HTML content for the Swagger UI page.
+  /// 
+  /// This helper is static and can be called from the constructor.
+  /// Returns a complete HTML document with the Swagger UI configured to load
+  /// the API specification from the relative path 'apispec.json'.
   static String _getSwaggerHtml() {
     return '''
 <!DOCTYPE html>

@@ -1,6 +1,6 @@
 name: serverpod_swagger
 description: A package to automatically generate and serve Swagger UI for a Serverpod backend.
-version: 0.1.1 # Or your desired initial version (e.g., 1.0.0)
+version: 0.1.2 # Or your desired initial version (e.g., 1.0.0)
 homepage: https://github.com/serverpod/serverpod
 repository: https://github.com/serverpod/serverpod/tree/main/modules/serverpod_swagger
 
@@ -11,7 +11,7 @@ dependencies:
   serverpod: ^2.8.0 # Updated to match Serverpod 2.8.0
   yaml: ^3.1.2     # To parse protocol.yaml
   path: ^1.8.0     # For path manipulation
-  analyzer: ^6.4.1 # Or the latest version
+  analyzer: ^7.5.2 # Or the latest version
   glob: ^2.1.3
 
 dev_dependencies:

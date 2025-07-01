@@ -5,13 +5,14 @@ import 'package:test/test.dart';
 void main() {
   group('ProtocolToOpenApiConverter tests', () {
     late Directory tempDir;
-    
+
     setUp(() {
       // Create a temporary directory with a mock protocol.yaml for testing
-      tempDir = Directory.systemTemp.createTempSync('serverpod_swagger_ui_test_');
+      tempDir =
+          Directory.systemTemp.createTempSync('serverpod_swagger_ui_test_');
       final protocolDir = Directory('${tempDir.path}/lib/src/generated');
       protocolDir.createSync(recursive: true);
-      
+
       // Create a simple protocol.yaml file for testing
       final protocolFile = File('${protocolDir.path}/protocol.yaml');
       protocolFile.writeAsStringSync('''
@@ -28,14 +29,13 @@ void main() {
                 type: DateTime
       ''');
     });
-    
+
     tearDown(() {
       // Clean up the temporary directory
       tempDir.deleteSync(recursive: true);
     });
-
   });
-  
+
   group('SwaggerUIRoute tests', () {
     test('creates route with correct paths', () {
       final projectRoot = Directory.current;
