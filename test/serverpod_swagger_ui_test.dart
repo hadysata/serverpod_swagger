@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:serverpod_swagger_ui/serverpod_swagger_ui.dart';
+import 'package:serverpod_swagger/serverpod_swagger_ui.dart';
 import 'package:test/test.dart';
 
 void main() {
