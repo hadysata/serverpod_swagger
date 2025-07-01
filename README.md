@@ -1,4 +1,4 @@
-# Serverpod Swagger UI
+# Serverpod Swagger
 
 A package to automatically generate and serve Swagger UI for a Serverpod backend. This package makes it easy to add interactive API documentation to your Serverpod project.
 
@@ -24,7 +24,7 @@ Add the package to your `pubspec.yaml` file:
 
 ```yaml
 dependencies:
-  serverpod_swagger_ui: ^0.2.0
+  serverpod_swagger: ^0.1.3
 ```
 
 Then run:
@@ -40,7 +40,7 @@ dart pub get
 The recommended way to generate an OpenAPI specification for your Serverpod project is to run the following command from your server project root directory:
 
 ```bash
-dart run serverpod_swagger_ui:generate --base-url=http://localhost:8080
+dart run serverpod_swagger:generate --base-url=http://localhost:8080
 ```
 
 This will create an `apispec.json` file in your project root directory. The `--base-url` parameter specifies the base URL for your API endpoints.
@@ -65,7 +65,7 @@ The generator supports various command-line arguments to customize your OpenAPI 
 If you want to see detailed information about the specification generation process, you can use the `--verbose` flag:
 
 ```bash
-dart run serverpod_swagger_ui:generate --base-url=http://localhost:8080 --verbose
+dart run serverpod_swagger:generate --base-url=http://localhost:8080 --verbose
 ```
 
 The `--verbose` flag will display additional information such as the path to the generated file, the number of endpoints included, and security schemes defined.
@@ -75,7 +75,7 @@ The `--verbose` flag will display additional information such as the path to the
 Instead of regenerating the entire OpenAPI specification from scratch each time, you can use the `--update` flag to modify an existing specification file:
 
 ```bash
-dart run serverpod_swagger_ui:generate --update --http-method=greeting/hello:post
+dart run serverpod_swagger:generate --update --http-method=greeting/hello:post
 ```
 
 This allows you to make incremental changes to your API documentation without having to specify all parameters again.
@@ -84,13 +84,13 @@ This allows you to make incremental changes to your API documentation without ha
 
 ```bash
 # Update HTTP method for an endpoint
-dart run serverpod_swagger_ui:generate --update --http-method=greeting/hello:post
+dart run serverpod_swagger:generate --update --http-method=greeting/hello:post
 
 # Update base URL
-dart run serverpod_swagger_ui:generate --update --base-url=https://api.example.com
+dart run serverpod_swagger:generate --update --base-url=https://api.example.com
 
 # Update authentication settings
-dart run serverpod_swagger_ui:generate --update --auth=jwt
+dart run serverpod_swagger:generate --update --auth=jwt
 ```
 
 The update mode is particularly useful for large projects where regenerating the entire specification would be time-consuming.
@@ -114,7 +114,7 @@ In your Serverpod server's `server.dart` file, add the SwaggerUIRoute to your se
 ```dart
 import 'dart:io';
 import 'package:serverpod/serverpod.dart';
-import 'package:serverpod_swagger_ui/serverpod_swagger_ui.dart';
+import 'package:serverpod_swagger/serverpod_swagger.dart';
 
 Future<void> run(List<String> args) async {
   // Create the server
@@ -342,7 +342,7 @@ This will only apply authentication requirements to the specified endpoints or m
 If you need to secure a specific URL endpoint (like an endpoint with authorization token in header), you can use the `--secure-single-url` parameter:
 
 ```bash
-dart run serverpod_swagger_ui:generate --auth=jwt --secure-single-url=/jwtAuth/getCurrentUser --base-url=http://localhost:8080
+dart run serverpod_swagger:generate --auth=jwt --secure-single-url=/jwtAuth/getCurrentUser --base-url=http://localhost:8080
 ```
 
 This will only apply authentication requirements to the exact URL path specified, which is useful for endpoints that require authorization tokens in headers.
@@ -352,7 +352,7 @@ This will only apply authentication requirements to the exact URL path specified
 By default, all endpoints are generated with the HTTP GET method. If you need to specify a different HTTP method for a particular endpoint, you can use the `--http-method` parameter:
 
 ```bash
-dart run serverpod_swagger_ui:generate --http-method=profile/user:post --base-url=http://localhost:8080
+dart run serverpod_swagger:generate --http-method=profile/user:post --base-url=http://localhost:8080
 ```
 
 This will set the HTTP method for the `/profile/user` endpoint to POST instead of the default GET. You can specify any valid HTTP method (get, post, put, delete, patch, etc.).
@@ -360,7 +360,7 @@ This will set the HTTP method for the `/profile/user` endpoint to POST instead o
 You can also use multiple `--http-method` parameters to set different methods for different endpoints:
 
 ```bash
-dart run serverpod_swagger_ui:generate --http-method=profile/user:post --http-method=users/create:put --base-url=http://localhost:8080
+dart run serverpod_swagger:generate --http-method=profile/user:post --http-method=users/create:put --base-url=http://localhost:8080
 ```
 
 #### Automatic HTTP Method Detection
@@ -452,7 +452,7 @@ First, generate your OpenAPI specification with the desired authentication confi
 
 ```bash
 # From your server project root directory
-dart run serverpod_swagger_ui:generate --auth=jwt --base-url=https://api.example.com
+dart run serverpod_swagger:generate --auth=jwt --base-url=https://api.example.com
 ```
 
 #### Option B: Using the script from the package
@@ -471,7 +471,7 @@ In your server's main file (typically `bin/server.dart`), add the SwaggerUIRoute
 ```dart
 import 'dart:io';
 import 'package:serverpod/serverpod.dart';
-import 'package:serverpod_swagger_ui/serverpod_swagger_ui.dart';
+import 'package:serverpod_swagger/serverpod_swagger.dart';
 
 // Your existing server setup code...
 
@@ -519,19 +519,19 @@ You can create different OpenAPI specifications for different environments. Here
 #### Development Environment
 
 ```bash
-dart run serverpod_swagger_ui:generate --auth=jwt --unauth --base-url=http://localhost:8080
+dart run serverpod_swagger:generate --auth=jwt --unauth --base-url=http://localhost:8080
 ```
 
 #### Testing Environment with Specific Endpoints Secured
 
 ```bash
-dart run serverpod_swagger_ui:generate --auth=jwt --secure-endpoints=users,posts --base-url=https://test-api.example.com
+dart run serverpod_swagger:generate --auth=jwt --secure-endpoints=users,posts --base-url=https://test-api.example.com
 ```
 
 #### Production Environment
 
 ```bash
-dart run serverpod_swagger_ui:generate --auth=jwt --unsecure-endpoints=health,status --base-url=https://api.example.com
+dart run serverpod_swagger:generate --auth=jwt --unsecure-endpoints=health,status --base-url=https://api.example.com
 ```
 
 ### 5. Automating Specification Generation
@@ -548,7 +548,7 @@ void main(List<String> args) async {
     case 'prod':
       await Process.run('dart', [
         'run',
-        'serverpod_swagger_ui:generate',
+        'serverpod_swagger:generate',
         '--auth=jwt',
         '--base-url=https://api.example.com',
       ]);
@@ -556,7 +556,7 @@ void main(List<String> args) async {
     case 'test':
       await Process.run('dart', [
         'run',
-        'serverpod_swagger_ui:generate',
+        'serverpod_swagger:generate',
         '--auth=jwt',
         '--secure-endpoints=users,posts',
         '--base-url=https://test-api.example.com',
@@ -566,7 +566,7 @@ void main(List<String> args) async {
     default:
       await Process.run('dart', [
         'run',
-        'serverpod_swagger_ui:generate',
+        'serverpod_swagger:generate',
         '--auth=jwt',
         '--unauth',
         '--base-url=http://localhost:8080',
@@ -611,7 +611,7 @@ Map<String, dynamic> generateOpenApiMap(SwaggerSpec spec, {String? baseUrl}) {
 
 ## Conclusion
 
-The Serverpod Swagger UI generator provides a powerful and flexible way to create OpenAPI specifications for your Serverpod applications. By leveraging the various command-line arguments and features described in this documentation, you can create comprehensive API documentation that accurately reflects your endpoints, models, and security requirements.
+The Serverpod Swagger generator provides a powerful and flexible way to create OpenAPI specifications for your Serverpod applications. By leveraging the various command-line arguments and features described in this documentation, you can create comprehensive API documentation that accurately reflects your endpoints, models, and security requirements.
 
 ## Contributing
 

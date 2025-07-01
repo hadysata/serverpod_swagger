@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:serverpod_swagger/serverpod_swagger_ui.dart';
+import 'package:serverpod_swagger/serverpod_swagger.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -9,7 +9,7 @@ void main() {
     setUp(() {
       // Create a temporary directory with a mock protocol.yaml for testing
       tempDir =
-          Directory.systemTemp.createTempSync('serverpod_swagger_ui_test_');
+          Directory.systemTemp.createTempSync('serverpod_swagger_test_');
       final protocolDir = Directory('${tempDir.path}/lib/src/generated');
       protocolDir.createSync(recursive: true);
 

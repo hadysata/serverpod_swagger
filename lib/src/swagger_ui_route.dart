@@ -1,4 +1,4 @@
-// lib/serverpod_swagger_ui.dart
+// lib/serverpod_swagger.dart
 import 'dart:io';
 import 'package:serverpod/serverpod.dart';
 import 'package:path/path.dart' as p;

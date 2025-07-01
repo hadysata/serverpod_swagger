@@ -1,8 +1,8 @@
 name: serverpod_swagger
 description: A package to automatically generate and serve Swagger UI for a Serverpod backend.
-version: 0.1.2 # Or your desired initial version (e.g., 1.0.0)
-homepage: https://github.com/serverpod/serverpod
-repository: https://github.com/serverpod/serverpod/tree/main/modules/serverpod_swagger
+version: 0.1.4 # Or your desired initial version (e.g., 1.0.0)
+homepage: https://arsheriff2k3.github.io/serverpod_swagger
+repository: https://github.com/arsheriff2k3/serverpod_swagger
 
 environment:
   sdk: '>=3.0.0 <4.0.0'

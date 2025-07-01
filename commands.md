@@ -1,7 +1,7 @@
 **Auth Commands**
-ryan_serverpod_server git:(master) ✗ dart run serverpod_swagger_ui:generate --update --unauth                                    
+ryan_serverpod_server git:(master) ✗ dart run serverpod_swagger:generate --update --unauth                                    
 Building package executable... 
-Built serverpod_swagger_ui:generate.
+Built serverpod_swagger:generate.
 📝 Update mode: Loading existing OpenAPI specification...
 
 🔧 Applying command-line arguments to the specification...
@@ -11,9 +11,9 @@ Built serverpod_swagger_ui:generate.
 
 
 
-➜  ryan_serverpod_server git:(master) ✗ dart run serverpod_swagger_ui:generate --update --secure-endpoints=/jwtAuth/getCurrentUser  
+➜  ryan_serverpod_server git:(master) ✗ dart run serverpod_swagger:generate --update --secure-endpoints=/jwtAuth/getCurrentUser  
 Building package executable... 
-Built serverpod_swagger_ui:generate.
+Built serverpod_swagger:generate.
 📝 Update mode: Loading existing OpenAPI specification...
 
 🔧 Applying command-line arguments to the specification...
@@ -26,9 +26,9 @@ Built serverpod_swagger_ui:generate.
 
 
 
-➜  ryan_serverpod_server git:(master) ✗ dart run serverpod_swagger_ui:generate --update --unsecure-endpoints=/jwtAuth/getCurrentUser
+➜  ryan_serverpod_server git:(master) ✗ dart run serverpod_swagger:generate --update --unsecure-endpoints=/jwtAuth/getCurrentUser
 Building package executable... 
-Built serverpod_swagger_ui:generate.
+Built serverpod_swagger:generate.
 📝 Update mode: Loading existing OpenAPI specification...
 
 🔧 Applying command-line arguments to the specification...
@@ -40,9 +40,9 @@ Built serverpod_swagger_ui:generate.
 ✅ Successfully updated apispec.json!
 
 
-➜  ryan_serverpod_server git:(master) ✗ dart run serverpod_swagger_ui:generate --update --secure-single-url=/jwtAuth/getCurrentUser
+➜  ryan_serverpod_server git:(master) ✗ dart run serverpod_swagger:generate --update --secure-single-url=/jwtAuth/getCurrentUser
 Building package executable... 
-Built serverpod_swagger_ui:generate.
+Built serverpod_swagger:generate.
 📝 Update mode: Loading existing OpenAPI specification...
 
 🔧 Applying command-line arguments to the specification...
@@ -54,9 +54,9 @@ Built serverpod_swagger_ui:generate.
 ✅ Successfully updated apispec.json!
 
 
-➜  ryan_serverpod_server git:(master) ✗ dart run serverpod_swagger_ui:generate --update --unsecure-single-url=/jwtAuth/getCurrentUser
+➜  ryan_serverpod_server git:(master) ✗ dart run serverpod_swagger:generate --update --unsecure-single-url=/jwtAuth/getCurrentUser
 Building package executable... 
-Built serverpod_swagger_ui:generate.
+Built serverpod_swagger:generate.
 📝 Update mode: Loading existing OpenAPI specification...
 
 🔧 Applying command-line arguments to the specification...
@@ -69,9 +69,9 @@ Built serverpod_swagger_ui:generate.
 
 
 
-ryan_serverpod_server git:(master) ✗ dart run serverpod_swagger_ui:generate --update --http-method=/jwtAuth/jwtLogin:post    
+ryan_serverpod_server git:(master) ✗ dart run serverpod_swagger:generate --update --http-method=/jwtAuth/jwtLogin:post    
 Building package executable... 
-Built serverpod_swagger_ui:generate.
+Built serverpod_swagger:generate.
 📝 Update mode: Loading existing OpenAPI specification...
 
 🔧 Applying command-line arguments to the specification...
@@ -83,9 +83,9 @@ Built serverpod_swagger_ui:generate.
 
 
 
-➜  ryan_serverpod_server git:(master) ✗ dart run serverpod_swagger_ui:generate --update --http-method=/jwtAuth/jwtLogin:get 
+➜  ryan_serverpod_server git:(master) ✗ dart run serverpod_swagger:generate --update --http-method=/jwtAuth/jwtLogin:get 
 Building package executable... 
-Built serverpod_swagger_ui:generate.
+Built serverpod_swagger:generate.
 📝 Update mode: Loading existing OpenAPI specification...
 
 🔧 Applying command-line arguments to the specification...
@@ -94,4 +94,4 @@ Built serverpod_swagger_ui:generate.
     - Changed /jwtAuth/jwtLogin from POST to GET
 
 ✅ Successfully updated apispec.json!
-➜  ryan_serverpod_server git:(master) ✗ 
+➜  ryan_serverpod_server git:(master) ✗
