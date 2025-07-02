@@ -1,6 +1,6 @@
 name: serverpod_swagger
 description: A package to automatically generate and serve Swagger UI for a Serverpod backend.
-version: 0.1.5 # Or your desired initial version (e.g., 1.0.0)
+version: 0.1.6 # Or your desired initial version (e.g., 1.0.0)
 homepage: https://serverpodswagger.vercel.app/
 repository: https://github.com/arsheriff2k3/serverpod_swagger
 
@@ -20,3 +20,9 @@ dependencies:
 dev_dependencies:
   test: ^1.24.0    # For testing
   lints: ^2.1.0    # For linting
+
+# Specify platforms where this package can be used
+platforms:
+  windows:
+  linux:
+  macos:

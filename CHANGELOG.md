@@ -1,3 +1,7 @@
+## 0.1.6
+
+- Updated version number for maintenance release
+
 ## 0.2.1
 
 - Fixed critical issue with package URI resolution that caused "Cannot extract a file path from a package URI" error

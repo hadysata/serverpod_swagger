@@ -10,7 +10,7 @@ class ServerpodSwaggerVersion {
   /// This constructor is not typically used as the class provides static constants.
 
   /// The current version of the package.
-  static const String version = '0.1.5';
+  static const String version = '0.1.6';
 
   /// The minimum supported Serverpod version.
   static const String minServerpodVersion = '2.8.0';
