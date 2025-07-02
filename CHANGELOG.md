@@ -1,15 +1,3 @@
-## 0.1.3
-
-- Renamed library file from serverpod_swagger_ui.dart to serverpod_swagger.dart to match package name
-- Fixed minor issues for package publishing compliance
-
-## 0.1.4
-
-- Added documentation for ServerpodSwaggerVersion constructor
-- Updated example directory with simplified server.dart and improved README.md
-- Fixed formatting in documentation
-- Completed renaming from serverpod_swagger_ui to serverpod_swagger
-
 ## 0.2.1
 
 - Fixed critical issue with package URI resolution that caused "Cannot extract a file path from a package URI" error
@@ -26,6 +14,23 @@
 - Removed dependency on shelf and shelf_static packages
 - Improved static file handling
 - Fixed path resolution for static files
+
+## 0.1.5
+
+- Updated command format from `dart serverpod_swagger:generate` to `dart run serverpod_swagger:generate` for better compatibility with modern Dart projects
+added homepage docs
+
+## 0.1.4
+
+- Added documentation for ServerpodSwaggerVersion constructor
+- Updated example directory with simplified server.dart and improved README.md
+- Fixed formatting in documentation
+- Completed renaming from serverpod_swagger_ui to serverpod_swagger
+
+## 0.1.3
+
+- Renamed library file from serverpod_swagger_ui.dart to serverpod_swagger.dart to match package name
+- Fixed minor issues for package publishing compliance
 
 ## 0.1.0
 

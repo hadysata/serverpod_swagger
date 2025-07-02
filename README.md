@@ -102,7 +102,7 @@ See the [detailed documentation](documentation.md#updating-existing-specificatio
 Alternatively, you can run the script directly from the package:
 
 ```bash
-dart bin/generate.dart
+dart run serverpod_swagger:generate
 ```
 
 This will also create an `apispec.json` file in your project root directory.
@@ -204,7 +204,7 @@ This ensures that all referenced models are properly included in the OpenAPI spe
 The package includes a script to generate the OpenAPI specification file (`apispec.json`) from your Serverpod endpoints:
 
 ```bash
-dart bin/generate.dart [--base-url=<your-api-base-url>]
+dart run serverpod_swagger:generate [--base-url=<your-api-base-url>]
 ```
 
 Options:
@@ -281,7 +281,7 @@ This ensures that only your actual API methods are included in the documentation
    
 4. **"Try it out" feature not working**:
    - If the "Try it out" feature sends requests to the wrong host, regenerate your API spec with the `--base-url` parameter
-   - Run `dart bin/generate.dart --base-url=http://localhost:8082` (adjust the URL to match your server)
+   - Run `dart run serverpod_swagger:generate --base-url=http://localhost:8082` (adjust the URL to match your server)
 
 5. **Missing Endpoints**: 
    - If endpoints are missing from your specification, ensure that your endpoint classes properly extend `Endpoint` and that methods are public.
@@ -304,7 +304,7 @@ You can customize the OpenAPI specification by modifying the `generate.dart` scr
 The simplest way to customize your API documentation is by using the `--base-url` parameter when generating the specification:
 
 ```bash
-dart bin/generate.dart --base-url=https://api.example.com
+dart run serverpod_swagger:generate --base-url=https://api.example.com
 ```
 
 ### Authentication Support
@@ -318,13 +318,13 @@ You can add authentication support to your API specification by using the `--aut
 
 Example:
 ```bash
-dart bin/generate.dart --auth=jwt --base-url=https://api.example.com
+dart run serverpod_swagger:generate --auth=jwt --base-url=https://api.example.com
 ```
 
 You can also provide a custom description for the authentication scheme using the `--auth-description` parameter:
 
 ```bash
-dart bin/generate.dart --auth=jwt --auth-description="JWT token obtained from /auth endpoint" --base-url=https://api.example.com
+dart run serverpod_swagger:generate --auth=jwt --auth-description="JWT token obtained from /auth endpoint" --base-url=https://api.example.com
 ```
 
 ### Securing Specific Endpoints
@@ -332,7 +332,7 @@ dart bin/generate.dart --auth=jwt --auth-description="JWT token obtained from /a
 By default, when you enable authentication with `--auth`, all endpoints will require authentication. If you want to secure only specific endpoints, you can use the `--secure-endpoints` parameter with a comma-separated list of endpoints or methods to secure:
 
 ```bash
-dart bin/generate.dart --auth=jwt --secure-endpoints=users,posts/create,comments/delete
+dart run serverpod_swagger:generate --auth=jwt --secure-endpoints=users,posts/create,comments/delete
 ```
 
 This will only apply authentication requirements to the specified endpoints or methods, while leaving others unsecured.
@@ -423,7 +423,7 @@ See the [detailed documentation](documentation.md#dynamic-property-generation) f
 If you want to secure most endpoints but explicitly exclude some from requiring authentication, you can use the `--unsecure-endpoints` parameter with a comma-separated list of endpoints or methods to exclude:
 
 ```bash
-dart bin/generate.dart --auth=jwt --unsecure-endpoints=health,status,public/posts
+dart run serverpod_swagger:generate --auth=jwt --unsecure-endpoints=health,status,public/posts
 ```
 
 This is useful when you want to secure most of your API but have a few public endpoints.
@@ -435,7 +435,7 @@ Note: If both `--secure-endpoints` and `--unsecure-endpoints` are provided, `--u
 If you need to temporarily disable authentication for all endpoints while preserving your authentication configuration, you can use the `--unauth` or `--disable-auth` flag:
 
 ```bash
-dart bin/generate.dart --auth=jwt --unauth
+dart run serverpod_swagger:generate --auth=jwt --unauth
 ```
 
 This will include the authentication scheme definition in the OpenAPI specification but won't apply security requirements to any endpoints. This is useful for testing or development environments where you want to disable authentication without removing the configuration.
@@ -459,7 +459,7 @@ dart run serverpod_swagger:generate --auth=jwt --base-url=https://api.example.co
 
 ```bash
 # From your project root directory
-dart bin/generate.dart --auth=jwt --base-url=https://api.example.com
+dart run serverpod_swagger:generate --auth=jwt --base-url=https://api.example.com
 ```
 
 Both methods will create an `apispec.json` file in your project root directory with JWT authentication enabled for all endpoints.
@@ -607,6 +607,73 @@ Map<String, dynamic> generateOpenApiMap(SwaggerSpec spec, {String? baseUrl}) {
   
   return openApiMap;
 }
+```
+
+### Creating a Custom Generator
+
+For even more control, you can create a custom generator script that imports the necessary components from the `serverpod_swagger` package. Here's an example of a custom generator script:
+
+```dart
+// custom_generator.dart 
+import 'dart:convert'; 
+import 'dart:io'; 
+import 'package:serverpod_swagger/src/services/parser.dart'; // Import the parser 
+
+void main(List<String> args) async { 
+  // Parse your command line arguments here 
+  String? baseUrl; 
+  // ... other argument parsing 
+  
+  // Create your own SwaggerSpec or use the existing parser to generate one 
+  final spec = SwaggerSpec(); // You'll need to populate this 
+  
+  // Call the customized version of generateOpenApiMap 
+  final openApiJson = generateOpenApiMap( 
+    spec, 
+    baseUrl: baseUrl, 
+    // Add your customizations here 
+    // For example, customize the info section: 
+    customInfo: { 
+      'title': 'My Custom API', 
+      'version': '2.0.0', 
+      'description': 'My detailed API documentation' 
+    }, 
+  ); 
+  
+  // Write the output 
+  final outputFile = File('apispec.json'); 
+  final prettyJson = JsonEncoder.withIndent('  ').convert(openApiJson); 
+  outputFile.writeAsStringSync(prettyJson); 
+} 
+
+// Your customized version of generateOpenApiMap 
+Map<String, dynamic> generateOpenApiMap( 
+  SwaggerSpec spec, { 
+  String? baseUrl, 
+  String? authType, 
+  String? authDescription, 
+  List<String>? securedEndpoints, 
+  List<String>? unsecuredEndpoints, 
+  String? secureSingleUrl, 
+  bool disableAuthGlobally = false, 
+  Map<String, String>? customHttpMethods, 
+  Map<String, dynamic>? customInfo, 
+}) { 
+  final paths = <String, dynamic>{}; 
+  // ... copy the implementation from parser.dart 
+  
+  // Customize the OpenAPI map 
+  final openApiMap = { 
+    'openapi': '3.0.0', 
+    'info': customInfo ?? {'title': 'Serverpod API', 'version': '1.0.0'}, 
+    'paths': paths 
+  }; 
+  
+  // ... rest of the implementation 
+  
+  return openApiMap; 
+}
+```
 ```
 
 ## Conclusion

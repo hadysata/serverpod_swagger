@@ -62,3 +62,144 @@ dart run serverpod_swagger:generate --secure=createUser,updateUser
 ```
 
 See the main package documentation for more details on available options.
+
+## Automating Specification Generation
+
+You can add a script to your project to automate the generation of the OpenAPI specification for different environments. For example, create a `scripts/generate_api_docs.dart` file:
+
+```dart
+import 'dart:io';
+
+void main(List<String> args) async {
+  final environment = args.isNotEmpty ? args[0] : 'dev';
+  
+  switch (environment) {
+    case 'prod':
+      await Process.run('dart', [
+        'run',
+        'serverpod_swagger:generate',
+        '--auth=jwt',
+        '--base-url=https://api.example.com',
+      ]);
+      break;
+    case 'test':
+      await Process.run('dart', [
+        'run',
+        'serverpod_swagger:generate',
+        '--auth=jwt',
+        '--secure-endpoints=users,posts',
+        '--base-url=https://test-api.example.com',
+      ]);
+      break;
+    case 'dev':
+    default:
+      await Process.run('dart', [
+        'run',
+        'serverpod_swagger:generate',
+        '--auth=jwt',
+        '--unauth',
+        '--base-url=http://localhost:8080',
+      ]);
+      break;
+  }
+  
+  print('Generated OpenAPI specification for $environment environment');
+}
+```
+
+Then run it with:
+
+```bash
+dart scripts/generate_api_docs.dart prod
+```
+
+This approach allows you to generate the OpenAPI specification directly from your server project without needing to access the package's bin directory.
+
+## Advanced Customization
+
+For more advanced customization, you can modify the `generateOpenApiMap` function in the `generate.dart` script to include additional information:
+
+```dart
+// Example of how you might customize the OpenAPI generation
+Map<String, dynamic> generateOpenApiMap(SwaggerSpec spec, {String? baseUrl}) {
+  final openApiMap = {
+    'openapi': '3.0.0',
+    'info': {
+      'title': 'My Custom API Title',
+      'version': '2.0.0',
+      'description': 'Detailed documentation for my API'
+    },
+    // ... rest of the implementation
+  };
+  
+  // ... add servers section if baseUrl is provided
+  
+  return openApiMap;
+}
+```
+
+## Creating a Custom Generator
+
+For even more control, you can create a custom generator script that imports the necessary components from the `serverpod_swagger` package. Here's an example of a custom generator script:
+
+```dart
+// custom_generator.dart 
+import 'dart:convert'; 
+import 'dart:io'; 
+import 'package:serverpod_swagger/src/services/parser.dart'; // Import the parser 
+
+void main(List<String> args) async { 
+  // Parse your command line arguments here 
+  String? baseUrl; 
+  // ... other argument parsing 
+  
+  // Create your own SwaggerSpec or use the existing parser to generate one 
+  final spec = SwaggerSpec(); // You'll need to populate this 
+  
+  // Call the customized version of generateOpenApiMap 
+  final openApiJson = generateOpenApiMap( 
+    spec, 
+    baseUrl: baseUrl, 
+    // Add your customizations here 
+    // For example, customize the info section: 
+    customInfo: { 
+      'title': 'My Custom API', 
+      'version': '2.0.0', 
+      'description': 'My detailed API documentation' 
+    }, 
+  ); 
+  
+  // Write the output 
+  final outputFile = File('apispec.json'); 
+  final prettyJson = JsonEncoder.withIndent('  ').convert(openApiJson); 
+  outputFile.writeAsStringSync(prettyJson); 
+} 
+
+// Your customized version of generateOpenApiMap 
+Map<String, dynamic> generateOpenApiMap( 
+  SwaggerSpec spec, { 
+  String? baseUrl, 
+  String? authType, 
+  String? authDescription, 
+  List<String>? securedEndpoints, 
+  List<String>? unsecuredEndpoints, 
+  String? secureSingleUrl, 
+  bool disableAuthGlobally = false, 
+  Map<String, String>? customHttpMethods, 
+  Map<String, dynamic>? customInfo, 
+}) { 
+  final paths = <String, dynamic>{}; 
+  // ... copy the implementation from parser.dart 
+  
+  // Customize the OpenAPI map 
+  final openApiMap = { 
+    'openapi': '3.0.0', 
+    'info': customInfo ?? {'title': 'Serverpod API', 'version': '1.0.0'}, 
+    'paths': paths 
+  }; 
+  
+  // ... rest of the implementation 
+  
+  return openApiMap; 
+}
+```
