@@ -4,28 +4,28 @@ import 'package:serverpod/serverpod.dart';
 import 'package:path/path.dart' as p;
 
 /// A development-friendly route that serves a live-reloading Swagger UI.
-/// 
+///
 /// It re-reads the apispec.json on every request to show changes instantly.
 /// This route is designed to be used during development to provide an
 /// interactive API documentation interface that updates as you modify your code.
 class SwaggerUIRoute extends Route {
   /// The root directory of the project where apispec.json is located.
   final Directory _projectRoot;
-  
+
   /// The pre-generated HTML content for the Swagger UI page.
   final String _swaggerHtml;
-  
+
   /// The base path where the Swagger UI will be mounted (e.g., '/swagger/').
   final String _mountPath;
-  
+
   /// The path without trailing slash that will redirect to _mountPath.
-  final String _redirectPath;
-  
+  // final String _redirectPath;
+
   /// The full path to the API specification JSON file.
   final String _specPath;
 
   /// Creates a new SwaggerUIRoute instance.
-  /// 
+  ///
   /// [projectRoot] is the directory where the apispec.json file is located.
   /// [mountPath] is the URL path where the Swagger UI will be served, must end with a slash.
   SwaggerUIRoute(Directory projectRoot, {String mountPath = '/swagger/'})
@@ -33,13 +33,24 @@ class SwaggerUIRoute extends Route {
             'mountPath must end with a trailing slash.'),
         _projectRoot = projectRoot,
         _mountPath = mountPath,
-        _redirectPath = mountPath.substring(0, mountPath.length - 1),
+        // _redirectPath = mountPath.substring(0, mountPath.length - 1),
         _specPath = p.join(mountPath, 'apispec.json'),
         // The HTML is static, so we can generate it once.
         _swaggerHtml = _getSwaggerHtml();
 
+  bool matchesMountPath(String path, String mountPath) {
+    // Remove any trailing slash for comparison
+    String normalizedMount = mountPath.endsWith('/') && mountPath.length > 1
+        ? mountPath.substring(0, mountPath.length - 1)
+        : mountPath;
+    String normalizedPath = path.endsWith('/') && path.length > 1
+        ? path.substring(0, path.length - 1)
+        : path;
+    return normalizedPath == normalizedMount;
+  }
+
   /// Handles incoming HTTP requests and serves the Swagger UI or API specification.
-  /// 
+  ///
   /// Returns true if the request was handled by this route, false otherwise.
   @override
   Future<bool> handleCall(Session session, HttpRequest request) async {
@@ -75,7 +86,7 @@ class SwaggerUIRoute extends Route {
     }
 
     // 2. Handle the request for the main UI page.
-    if (path == _mountPath) {
+    if (matchesMountPath(path, _mountPath)) {
       session.log('Serving Swagger UI main page at $path');
       request.response.headers.contentType = ContentType.html;
       request.response.write(_swaggerHtml);
@@ -83,20 +94,20 @@ class SwaggerUIRoute extends Route {
       return true;
     }
 
-    // 3. Handle the redirect from '/swagger' to '/swagger/'.
-    if (path == _redirectPath) {
-      session.log('Redirecting from $path to $_mountPath');
-      request.response.statusCode = HttpStatus.movedPermanently;
-      request.response.headers.set('Location', _mountPath);
-      await request.response.close();
-      return true;
-    }
+    // // 3. Handle the redirect from '/swagger' to '/swagger/'.
+    // if (path == _redirectPath) {
+    //   session.log('Redirecting from $path to $_mountPath');
+    //   request.response.statusCode = HttpStatus.movedPermanently;
+    //   request.response.headers.set('Location', _mountPath);
+    //   await request.response.close();
+    //   return true;
+    // }
 
     return false;
   }
 
   /// Generates the HTML content for the Swagger UI page.
-  /// 
+  ///
   /// This helper is static and can be called from the constructor.
   /// Returns a complete HTML document with the Swagger UI configured to load
   /// the API specification from the relative path 'apispec.json'.

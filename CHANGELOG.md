@@ -1,3 +1,7 @@
+## 0.1.7
+
+- Updated version number for maintenance release
+
 ## 0.1.6
 
 - Updated version number for maintenance release

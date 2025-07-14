@@ -8,7 +8,7 @@ This example demonstrates how to integrate Serverpod Swagger into your Serverpod
 
 ```yaml
 dependencies:
-  serverpod_swagger: ^0.1.3
+  serverpod_swagger: ^0.1.7
 ```
 
 2. Run `dart pub get` to install the package.
