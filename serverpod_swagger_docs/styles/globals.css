@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
+  }
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+}
+
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded-md font-medium transition-colors;
+  }
+  .btn-primary {
+    @apply bg-primary-600 text-white hover:bg-primary-700;
+  }
+  .btn-secondary {
+    @apply bg-gray-200 text-gray-800 hover:bg-gray-300;
+  }
+  .card {
+    @apply bg-white dark:bg-gray-800 rounded-lg shadow-md p-6;
+  }
+  .heading-1 {
+    @apply text-3xl font-bold mb-4;
+  }
+  .heading-2 {
+    @apply text-2xl font-bold mb-3;
+  }
+  .heading-3 {
+    @apply text-xl font-bold mb-2;
+  }
+  .prose {
+    @apply max-w-none;
+  }
+  .prose pre {
+    @apply bg-gray-100 dark:bg-gray-900 p-4 rounded-md overflow-x-auto;
+  }
+  .prose code {
+    @apply bg-gray-100 dark:bg-gray-900 px-1 py-0.5 rounded-md text-sm;
+  }
+  .prose a {
+    @apply text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300;
+  }
+  .prose table {
+    @apply w-full border-collapse;
+  }
+  .prose th {
+    @apply bg-gray-100 dark:bg-gray-800 p-2 text-left;
+  }
+  .prose td {
+    @apply border border-gray-200 dark:border-gray-700 p-2;
+  }
+}
