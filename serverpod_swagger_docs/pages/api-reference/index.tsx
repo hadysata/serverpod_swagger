@@ -53,76 +53,7 @@ export default function APIReference() {
             <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300"><code>String</code></td>
             <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">Path to the OpenAPI specification file</td>
           </tr>
-          <tr>
-            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300"><code>title</code></td>
-            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300"><code>String</code></td>
-            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">Title displayed in the Swagger UI</td>
-          </tr>
-          <tr>
-            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300"><code>customCssUrl</code></td>
-            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300"><code>String?</code></td>
-            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">URL to a custom CSS file for styling Swagger UI</td>
-          </tr>
-          <tr>
-            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300"><code>customJsUrl</code></td>
-            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300"><code>String?</code></td>
-            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">URL to a custom JavaScript file for extending Swagger UI</td>
-          </tr>
-          <tr>
-            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300"><code>enableDeepLinking</code></td>
-            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300"><code>bool</code></td>
-            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">If set to true, enables deep linking for tags and operations</td>
-          </tr>
-          <tr>
-            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300"><code>showExtensions</code></td>
-            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300"><code>bool</code></td>
-            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">Controls the display of vendor extension (x-) fields and values</td>
-          </tr>
-          <tr>
-            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300"><code>showCommonExtensions</code></td>
-            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300"><code>bool</code></td>
-            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">Controls the display of extensions (pattern, maxLength, minLength, maximum, minimum) fields and values</td>
-          </tr>
-          <tr>
-            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300"><code>defaultModelsExpandDepth</code></td>
-            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300"><code>int</code></td>
-            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">The default expansion depth for models</td>
-          </tr>
-          <tr>
-            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300"><code>defaultModelExpandDepth</code></td>
-            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300"><code>int</code></td>
-            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">The default expansion depth for the model on the model-example section</td>
-          </tr>
-          <tr>
-            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300"><code>displayOperationId</code></td>
-            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300"><code>bool</code></td>
-            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">Controls the display of operationId in operations list</td>
-          </tr>
-          <tr>
-            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300"><code>displayRequestDuration</code></td>
-            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300"><code>bool</code></td>
-            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">Controls the display of the request duration (in milliseconds) for Try-It-Out requests</td>
-          </tr>
-          <tr>
-            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300"><code>filter</code></td>
-            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300"><code>bool</code></td>
-            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">If set, enables filtering. The top bar will show an edit box that you can use to filter the tagged operations that are shown</td>
-          </tr>
-          <tr>
-            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300"><code>showMutatedRequest</code></td>
-            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300"><code>bool</code></td>
-            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">If set, uses the mutated request returned from a requestInterceptor to produce the curl command in the UI</td>
-          </tr>
-          <tr>
-            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300"><code>tryItOutEnabled</code></td>
-            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300"><code>bool</code></td>
-            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">Controls whether the "Try it out" section should be enabled by default</td>
-          </tr>
-          <tr>
-            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300"><code>persistAuthorization</code></td>
-            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300"><code>bool</code></td>
-            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">If set, it persists authorization data and it would not be lost on browser close/refresh</td>
-          </tr>
+          
         </tbody>
       </table>
 
