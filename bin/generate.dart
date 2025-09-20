@@ -490,7 +490,7 @@ class OpenApiSpecGenerator {
 
     // Step 2: Parse all project models to start the process.
     print('\n[2/3] Parsing local project models...');
-    final localModelsPath = p.join(projectPath, 'lib', 'src', 'models');
+    final localModelsPath = p.join(projectPath, 'lib', 'src');
     final localModelsDir = Directory(localModelsPath);
     if (localModelsDir.existsSync()) {
       final localModelFiles = _findModelFilesRecursively(localModelsDir);
@@ -504,7 +504,7 @@ class OpenApiSpecGenerator {
 
     // Step 3: Parse endpoints, which triggers on-demand parsing of package models.
     print('\n[3/3] Parsing Dart endpoint files...');
-    final endpointsPath = p.join(projectPath, 'lib', 'src', 'endpoints');
+    final endpointsPath = p.join(projectPath, 'lib', 'src');
     final endpointsDir = Directory(endpointsPath);
     if (endpointsDir.existsSync()) {
       final endpointFiles = endpointsDir
