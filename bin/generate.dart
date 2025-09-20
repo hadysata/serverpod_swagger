@@ -509,7 +509,7 @@ class OpenApiSpecGenerator {
     if (endpointsDir.existsSync()) {
       final endpointFiles = endpointsDir
           .listSync(recursive: true)
-          .where((e) => e is File && e.path.endsWith('.dart'))
+          .where((e) => e is File && e.path.endsWith('endpoint.dart'))
           .cast<File>();
 
       for (final file in endpointFiles) {
